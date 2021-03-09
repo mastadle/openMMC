@@ -55,7 +55,7 @@
 #define ADN4604_EN_OUT_9        0       /* LINK23_CLK */
 #define ADN4604_EN_OUT_10       0       /* FIN1_CLK3 */
 #define ADN4604_EN_OUT_11       0       /* FIN1_CLK2 */
-#define ADN4604_EN_OUT_12       0       /* RTM_SYNC_CLK */
+#define ADN4604_EN_OUT_12       1       /* RTM_SYNC_CLK */
 #define ADN4604_EN_OUT_13       1       /* OP15C (Aux U-Fl connector) */
 #define ADN4604_EN_OUT_14       0       /* FIN2_CLK2 */
 #define ADN4604_EN_OUT_15       0       /* FIN2_CLK3 */
