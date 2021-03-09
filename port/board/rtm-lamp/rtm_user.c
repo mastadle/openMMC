@@ -31,6 +31,7 @@
 #include "led.h"
 #include "board_led.h"
 #include "uart_debug.h"
+#include "cdce906.h"
 /* RTM Management functions */
 
 void rtm_enable_payload_power( void )
@@ -89,6 +90,41 @@ void rtm_hardware_init( void )
 {
     rtm_enable_i2c();
     pca9554_set_port_dir( CHIP_ID_RTM_PCA9554_LEDS, 0x1F );
+
+    uint8_t i2c_addr;
+    uint8_t i2c_id;
+	uint8_t data[32];
+	volatile cdce906_cfg pll_cfg = {.clksrc = CDCE906_CLK_SRC_CLKIN0_LVCMOS};
+
+	cdce906_read_cfg(CHIP_ID_RTM_CDCE906, &pll_cfg);
+
+    pll_cfg.clksrc = CDCE906_CLK_SRC_CLKIN_DIFF;
+    pll_cfg.pll_sel[0] = CDCE906_Px_PLL_SEL_BYPASS;
+    pll_cfg.pll_sel[1] = CDCE906_Px_PLL_SEL_BYPASS;
+    pll_cfg.pll_sel[2] = CDCE906_Px_PLL_SEL_BYPASS;
+    pll_cfg.pll_sel[3] = CDCE906_Px_PLL_SEL_BYPASS;
+    pll_cfg.p_div[0] = 1;
+    pll_cfg.p_div[1] = 120;
+    pll_cfg.p_div[2] = 30;
+    pll_cfg.p_div[3] = 60;
+    pll_cfg.y_out[0] = CDCE906_Yx_OUT_CFG_EN;
+    pll_cfg.y_out[1] = CDCE906_Yx_OUT_CFG_DIS_HIGH;
+    pll_cfg.y_out[2] = CDCE906_Yx_OUT_CFG_DIS_LOW;
+    pll_cfg.y_out[3] = CDCE906_Yx_OUT_CFG_DIS_LOW;
+	pll_cfg.y_p_sel[0] = CDCE906_Yx_Px_SEL_P0;
+	pll_cfg.y_p_sel[1] = CDCE906_Yx_Px_SEL_P1;
+	pll_cfg.y_p_sel[2] = CDCE906_Yx_Px_SEL_P2;
+	pll_cfg.y_p_sel[3] = CDCE906_Yx_Px_SEL_P3;
+	cdce906_write_cfg(CHIP_ID_RTM_CDCE906, &pll_cfg);
+
+	cdce906_read_cfg(CHIP_ID_RTM_CDCE906, &pll_cfg);
+
+    pca9554_set_port_dir( CHIP_ID_RTM_PCA9554_PWR, 0x00 );
+	pca9554_write_port( CHIP_ID_RTM_PCA9554_PWR,
+						(1 << RTM_GPIO_NEG_7V_EN) | (0 << RTM_GPIO_7V_EN) | (0 << RTM_GPIO_VS1_EN) |
+						(0 << RTM_GPIO_VS2_EN) | (1 << RTM_GPIO_5V_EN) );
+
+	//rtm_enable_payload_power();
 }
 
 void rtm_enable_i2c( void )
