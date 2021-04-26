@@ -39,6 +39,7 @@
 #include "fru.h"
 #include "led.h"
 #include "board_led.h"
+#include "board_config.h"
 
 
 /* payload states
@@ -338,7 +339,8 @@ void vTaskPayload( void *pvParameters )
             break;
 
         case PAYLOAD_STATE_FPGA_SETUP:
-
+            vTaskDelay(pdMS_TO_TICKS(150));
+            clock_switch_default_config();
             new_state = PAYLOAD_FPGA_ON;
             break;
 

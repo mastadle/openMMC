@@ -25,5 +25,6 @@
 
 void board_init();
 void board_config();
+uint8_t clock_switch_default_config(void);
 
 #endif
