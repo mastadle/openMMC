@@ -45,6 +45,11 @@
 #include "board_config.h"
 #endif
 
+#include "mcp23016.h"
+
+extern const external_gpio_t ext_gpios[15];
+
+
 /*-----------------------------------------------------------*/
 int main( void )
 {
@@ -106,6 +111,7 @@ int main( void )
 #ifdef MODULE_BOARD_CONFIG
     board_config();
 #endif
+    mcp23016_write_pin(ext_gpios[EXT_GPIO_EN_RTM_MP].port_num, ext_gpios[EXT_GPIO_EN_RTM_MP].pin_num, true);
 
     /* Start the tasks running. */
     vTaskStartScheduler();

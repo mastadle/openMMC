@@ -32,12 +32,38 @@
 #include "board_led.h"
 #include "uart_debug.h"
 #include "cdce906_config.h"
+#include "mcp23016.h"
 /* RTM Management functions */
+
+typedef struct external_gpio {
+    uint8_t port_num;
+    uint8_t pin_num;
+} external_gpio_t;
+
+enum {
+	EXT_GPIO_EN_P1V0,
+	EXT_GPIO_EN_P1V8,
+	EXT_GPIO_EN_P3V3,
+	EXT_GPIO_EN_FMC1_PVADJ,
+	EXT_GPIO_EN_FMC2_PVADJ,
+	EXT_GPIO_P1V5_VTT_EN,
+	EXT_GPIO_EN_P1V2,
+	EXT_GPIO_EN_FMC1_P12V,
+	EXT_GPIO_EN_FMC1_P3V3,
+	EXT_GPIO_EN_FMC2_P12V,
+	EXT_GPIO_EN_FMC2_P3V3,
+	EXT_GPIO_EN_RTM_PWR,
+	EXT_GPIO_EN_RTM_MP,
+	EXT_GPIO_FPGA_I2C_RESET,
+	EXT_GPIO_PROGRAM_B,
+};
+
+extern const external_gpio_t ext_gpios[15];
 
 void rtm_enable_payload_power( void )
 {
-    gpio_set_pin_state( PIN_PORT(GPIO_EN_RTM_PWR), PIN_NUMBER(GPIO_EN_RTM_PWR), 1 );
-
+    /* gpio_set_pin_state( PIN_PORT(GPIO_EN_RTM_PWR), PIN_NUMBER(GPIO_EN_RTM_PWR), 1 ); */
+    mcp23016_write_pin(ext_gpios[EXT_GPIO_EN_RTM_PWR].port_num, ext_gpios[EXT_GPIO_EN_RTM_PWR].pin_num, true);
     /*
      * RTM-LAMP power up sequence
      */
@@ -52,7 +78,8 @@ void rtm_enable_payload_power( void )
 
 void rtm_disable_payload_power( void )
 {
-    gpio_set_pin_state( PIN_PORT(GPIO_EN_RTM_PWR), PIN_NUMBER(GPIO_EN_RTM_PWR), 0 );
+    /* gpio_set_pin_state( PIN_PORT(GPIO_EN_RTM_PWR), PIN_NUMBER(GPIO_EN_RTM_PWR), 0 ); */
+    mcp23016_write_pin(ext_gpios[EXT_GPIO_EN_RTM_PWR].port_num, ext_gpios[EXT_GPIO_EN_RTM_PWR].pin_num, false);
 
     /*
      * RTM-LAMP power down sequence
@@ -89,28 +116,37 @@ uint8_t rtm_get_hotswap_handle_status( uint8_t *state )
 
 void rtm_check_presence( uint8_t *status )
 {
+    if (gpio_read_pin(PIN_PORT(GPIO_RTM_PS), PIN_NUMBER(GPIO_RTM_PS))) {
+        *status = HOTSWAP_STATE_URTM_ABSENT;
+    } else {
+        *status = HOTSWAP_STATE_URTM_PRSENT;
+    }
+
     /* Due to a hardware limitation in the AFC board, we can't rely on reading the PS signal
        since this pin doesn't have a pull-up resistor, it's always read as 0.
        A very dirty workaround is to 'ping' the RTM IO Expander(PCA9554), if it responds, then the board is connected */
-    rtm_enable_i2c();
+    /* rtm_enable_i2c(); */
 
-    uint8_t i2c_addr, i2c_interface;
-    uint8_t dumb;
+    /* uint8_t i2c_addr, i2c_interface; */
+    /* uint8_t dumb; */
 
-    /* Defaults to absent - in case of I2C failure */
-    *status = HOTSWAP_STATE_URTM_ABSENT;
+    /* /\* Defaults to absent - in case of I2C failure *\/ */
+    /* *status = HOTSWAP_STATE_URTM_ABSENT; */
 
-    if (i2c_take_by_chipid( CHIP_ID_RTM_PCA9554_LEDS, &i2c_addr, &i2c_interface, 100)) {
-        if (xI2CMasterRead( i2c_interface, i2c_addr, &dumb, 1)) {
-            *status = HOTSWAP_STATE_URTM_PRSENT;
-        }
-        i2c_give(i2c_interface);
-    }
+    /* if (i2c_take_by_chipid( CHIP_ID_RTM_PCA9554_LEDS, &i2c_addr, &i2c_interface, 100)) { */
+    /*     if (xI2CMasterRead( i2c_interface, i2c_addr, &dumb, 1)) { */
+    /*         *status = HOTSWAP_STATE_URTM_PRSENT; */
+    /*     } */
+    /*     i2c_give(i2c_interface); */
+    /* } */
+
 }
 
 void rtm_hardware_init( void )
 {
-    rtm_enable_i2c();
+    mcp23016_write_pin(ext_gpios[EXT_GPIO_EN_RTM_MP].port_num, ext_gpios[EXT_GPIO_EN_RTM_MP].pin_num, true);
+    /* rtm_enable_i2c(); */
+
     pca9554_set_port_dir( CHIP_ID_RTM_PCA9554_LEDS, 0x1F );
 
     /*
@@ -130,15 +166,15 @@ void rtm_hardware_init( void )
 void rtm_enable_i2c( void )
 {
     /* Enable I2C communication with RTM */
-    gpio_set_pin_dir( PIN_PORT(GPIO_RTM_PS), PIN_NUMBER(GPIO_RTM_PS), GPIO_DIR_OUTPUT );
-    gpio_set_pin_dir( PIN_PORT(GPIO_EN_RTM_I2C), PIN_NUMBER(GPIO_EN_RTM_I2C), GPIO_DIR_OUTPUT );
-    gpio_set_pin_state( PIN_PORT(GPIO_EN_RTM_I2C), PIN_NUMBER(GPIO_EN_RTM_I2C), GPIO_LEVEL_HIGH );
+    /* gpio_set_pin_dir( PIN_PORT(GPIO_RTM_PS), PIN_NUMBER(GPIO_RTM_PS), GPIO_DIR_OUTPUT ); */
+    /* gpio_set_pin_dir( PIN_PORT(GPIO_EN_RTM_I2C), PIN_NUMBER(GPIO_EN_RTM_I2C), GPIO_DIR_OUTPUT ); */
+    /* gpio_set_pin_state( PIN_PORT(GPIO_EN_RTM_I2C), PIN_NUMBER(GPIO_EN_RTM_I2C), GPIO_LEVEL_HIGH ); */
 }
 
 void rtm_disable_i2c( void )
 {
-    gpio_set_pin_dir( PIN_PORT(GPIO_RTM_PS), PIN_NUMBER(GPIO_RTM_PS), GPIO_DIR_INPUT );
-    gpio_set_pin_dir( PIN_PORT(GPIO_EN_RTM_I2C), PIN_NUMBER(GPIO_EN_RTM_I2C), GPIO_DIR_INPUT );
+    /* gpio_set_pin_dir( PIN_PORT(GPIO_RTM_PS), PIN_NUMBER(GPIO_RTM_PS), GPIO_DIR_INPUT ); */
+    /* gpio_set_pin_dir( PIN_PORT(GPIO_EN_RTM_I2C), PIN_NUMBER(GPIO_EN_RTM_I2C), GPIO_DIR_INPUT ); */
 }
 
 bool rtm_compatibility_check( void )

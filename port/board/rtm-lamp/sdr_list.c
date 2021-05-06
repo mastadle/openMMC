@@ -237,9 +237,9 @@ void rtm_sdr_init( void )
 #endif
 
 #ifdef MODULE_LM75
-    sdr_insert_entry( TYPE_01, (void *) &SDR_LM75_RTM_1, &vTaskLM75_Handle, 0, CHIP_ID_RTM_LM75_0 );
-    sdr_insert_entry( TYPE_01, (void *) &SDR_LM75_RTM_2, &vTaskLM75_Handle, 0, CHIP_ID_RTM_LM75_1 );
-    sdr_insert_entry( TYPE_01, (void *) &SDR_LM75_RTM_3, &vTaskLM75_Handle, 0, CHIP_ID_RTM_LM75_2 );
+    //sdr_insert_entry( TYPE_01, (void *) &SDR_LM75_RTM_1, &vTaskLM75_Handle, 0, CHIP_ID_RTM_LM75_0 );
+    //sdr_insert_entry( TYPE_01, (void *) &SDR_LM75_RTM_2, &vTaskLM75_Handle, 0, CHIP_ID_RTM_LM75_1 );
+    //sdr_insert_entry( TYPE_01, (void *) &SDR_LM75_RTM_3, &vTaskLM75_Handle, 0, CHIP_ID_RTM_LM75_2 );
 #endif
 
 }

@@ -138,13 +138,13 @@ void RTM_Manage( void * Parameters )
             xEventGroupClearBits( rtm_payload_evt, PAYLOAD_MESSAGE_QUIESCE );
 
         } else if ( current_evt & PAYLOAD_MESSAGE_RTM_ENABLE ) {
-            if (rtm_compatible) {
+//            if (rtm_compatible) {
                 hotswap_clear_mask_bit( HOTSWAP_RTM, HOTSWAP_QUIESCED_MASK );
                 printf("[RTM] Enabling RTM Payload power...\n");
                 rtm_enable_payload_power();
-            } else {
-                printf("[RTM] Impossible to enable payload power to an incompatible RTM board!\n");
-            }
+//            } else {
+//                printf("[RTM] Impossible to enable payload power to an incompatible RTM board!\n");
+//            }
             xEventGroupClearBits( rtm_payload_evt, PAYLOAD_MESSAGE_RTM_ENABLE );
         }
     }
