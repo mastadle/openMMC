@@ -235,6 +235,7 @@ void payload_init( void )
     amc_payload_evt = xEventGroupCreate();
 #ifdef MODULE_RTM
     rtm_payload_evt = xEventGroupCreate();
+    mcp23016_write_pin(ext_gpios[EXT_GPIO_EN_RTM_MP].port_num, ext_gpios[EXT_GPIO_EN_RTM_MP].pin_num, true);
 #endif
 
 #ifdef MODULE_ADC

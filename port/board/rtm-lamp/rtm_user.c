@@ -79,7 +79,7 @@ void rtm_enable_payload_power( void )
 void rtm_disable_payload_power( void )
 {
     /* gpio_set_pin_state( PIN_PORT(GPIO_EN_RTM_PWR), PIN_NUMBER(GPIO_EN_RTM_PWR), 0 ); */
-    mcp23016_write_pin(ext_gpios[EXT_GPIO_EN_RTM_PWR].port_num, ext_gpios[EXT_GPIO_EN_RTM_PWR].pin_num, false);
+    mcp23016_write_pin(ext_gpios[EXT_GPIO_EN_RTM_PWR].port_num, ext_gpios[EXT_GPIO_EN_RTM_PWR].pin_num, true);
 
     /*
      * RTM-LAMP power down sequence
