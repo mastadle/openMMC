@@ -1,0 +1,4 @@
+<map id="modules/watchdog.h" name="modules/watchdog.h">
+<area shape="rect" id="node2" href="$main_8c.html" title="modules/main.c" alt="" coords="5,80,132,107"/>
+<area shape="rect" id="node3" href="$watchdog_8c.html" title="Reset the uC if it fails to reload the watchdog timer. " alt="" coords="156,80,312,107"/>
+</map>

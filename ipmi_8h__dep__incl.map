@@ -1,0 +1,36 @@
+<map id="modules/ipmi.h" name="modules/ipmi.h">
+<area shape="rect" id="node2" href="$fru__editor_8h.html" title="modules/fru_editor.h" alt="" coords="617,87,773,114"/>
+<area shape="rect" id="node3" href="$fru_8c.html" title="modules/fru.c" alt="" coords="5,177,116,203"/>
+<area shape="rect" id="node14" href="$hpm_8c.html" title="modules/hpm.c" alt="" coords="798,87,921,114"/>
+<area shape="rect" id="node15" href="$ipmb_8c.html" title="modules/ipmb.c" alt="" coords="945,87,1072,114"/>
+<area shape="rect" id="node16" href="$ipmi_8c.html" title="IPMI module implementation. " alt="" coords="1097,87,1219,114"/>
+<area shape="rect" id="node17" href="$led_8c.html" title="modules/led.c" alt="" coords="1244,87,1357,114"/>
+<area shape="rect" id="node18" href="$main_8c.html" title="modules/main.c" alt="" coords="1381,87,1508,114"/>
+<area shape="rect" id="node19" href="$rtm_8c.html" title="modules/rtm.c" alt="" coords="1532,87,1648,114"/>
+<area shape="rect" id="node20" href="$sdr_8c.html" title="modules/sdr.c" alt="" coords="1673,87,1785,114"/>
+<area shape="rect" id="node21" href="$hotswap_8c.html" title="Hotswap sensors implementation. " alt="" coords="1809,87,2011,114"/>
+<area shape="rect" id="node22" href="$afc-bpm_2v3__1_2ipmi__oem_8h.html" title="Custom IPMI commands for AFC. " alt="" coords="2035,80,2182,121"/>
+<area shape="rect" id="node24" href="$afc-bpm_2v3__1_2payload_8c.html" title="port/board/afc&#45;bpm\l/v3_1/payload.c" alt="" coords="2206,80,2353,121"/>
+<area shape="rect" id="node25" href="$board__led_8c.html" title="port/board/afc&#45;common\l/board_led.c" alt="" coords="2377,80,2552,121"/>
+<area shape="rect" id="node26" href="$afc-fofb-ctrl_2v3__1_2ipmi__oem_8h.html" title="Custom IPMI commands for AFC FOFB CTRL. " alt="" coords="2576,80,2740,121"/>
+<area shape="rect" id="node28" href="$afc-fofb-ctrl_2v3__1_2payload_8c.html" title="port/board/afc&#45;fofb\l&#45;ctrl/v3_1/payload.c" alt="" coords="2764,80,2915,121"/>
+<area shape="rect" id="node29" href="$afc-timing_2ipmi__oem_8h.html" title="Custom IPMI commands for AFC Timing. " alt="" coords="2939,80,3099,121"/>
+<area shape="rect" id="node31" href="$afc-timing_2payload_8c.html" title="port/board/afc&#45;timing\l/payload.c" alt="" coords="3123,80,3283,121"/>
+<area shape="rect" id="node32" href="$afc-v4_2ipmi__oem_8h.html" title="Custom IPMI commands for AFC. " alt="" coords="3308,80,3475,121"/>
+<area shape="rect" id="node34" href="$afc-v4_2payload_8c.html" title="port/board/afc&#45;v4/payload.c" alt="" coords="3499,87,3700,114"/>
+<area shape="rect" id="node35" href="$lpc17__hpm_8c.html" title="Firmware update functions (HPM.1) " alt="" coords="3725,80,3887,121"/>
+<area shape="rect" id="node4" href="$fru__editor_8c.html" title="modules/fru_editor.c" alt="" coords="141,177,295,203"/>
+<area shape="rect" id="node5" href="$afc-bpm_2v3__1_2user__amc__fru_8h.html" title="port/board/afc&#45;bpm\l/v3_1/user_amc_fru.h" alt="" coords="320,169,481,211"/>
+<area shape="rect" id="node6" href="$board__fru_8c.html" title="port/board/afc&#45;common\l/board_fru.c" alt="" coords="505,169,680,211"/>
+<area shape="rect" id="node7" href="$afc-fofb-ctrl_2v3__1_2user__amc__fru_8h.html" title="port/board/afc&#45;fofb\l&#45;ctrl/v3_1/user_amc_fru.h" alt="" coords="705,169,891,211"/>
+<area shape="rect" id="node8" href="$afc-timing_2user__amc__fru_8h.html" title="port/board/afc&#45;timing\l/user_amc_fru.h" alt="" coords="915,169,1075,211"/>
+<area shape="rect" id="node9" href="$afc-v4_2user__amc__fru_8h.html" title="port/board/afc&#45;v4/user\l_amc_fru.h" alt="" coords="1100,169,1267,211"/>
+<area shape="rect" id="node11" href="$rtm-8sfp_2rtm__user__fru_8h.html" title="port/board/rtm&#45;8sfp\l/rtm_user_fru.h" alt="" coords="1291,169,1441,211"/>
+<area shape="rect" id="node12" href="$rtm-lamp_2rtm__user__fru_8h.html" title="port/board/rtm&#45;lamp\l/rtm_user_fru.h" alt="" coords="1465,169,1619,211"/>
+<area shape="rect" id="node10" href="$amc__fru_8c.html" title="modules/amc_fru.c" alt="" coords="1110,259,1257,285"/>
+<area shape="rect" id="node13" href="$rtm__fru_8c.html" title="modules/rtm_fru.c" alt="" coords="1471,259,1613,285"/>
+<area shape="rect" id="node23" href="$afc-bpm_2v3__1_2ipmi__oem_8c.html" title="port/board/afc&#45;bpm\l/v3_1/ipmi_oem.c" alt="" coords="2035,169,2182,211"/>
+<area shape="rect" id="node27" href="$afc-fofb-ctrl_2v3__1_2ipmi__oem_8c.html" title="port/board/afc&#45;fofb\l&#45;ctrl/v3_1/ipmi_oem.c" alt="" coords="2577,169,2739,211"/>
+<area shape="rect" id="node30" href="$afc-timing_2ipmi__oem_8c.html" title="port/board/afc&#45;timing\l/ipmi_oem.c" alt="" coords="2939,169,3099,211"/>
+<area shape="rect" id="node33" href="$afc-v4_2ipmi__oem_8c.html" title="port/board/afc&#45;v4/ipmi\l_oem.c" alt="" coords="3308,169,3475,211"/>
+</map>

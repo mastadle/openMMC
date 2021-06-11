@@ -1,0 +1,16 @@
+<map id="modules/idt_8v54816.c" name="modules/idt_8v54816.c">
+<area shape="rect" id="node3" href="$port_8h.html" title="Port layer (includes all portable functions headers) " alt="" coords="803,155,863,181"/>
+<area shape="rect" id="node26" href="$idt__8v54816_8h.html" title="idt_8v54816.h" alt="" coords="535,80,650,107"/>
+<area shape="rect" id="node27" href="$i2c_8h.html" title="i2c.h" alt="" coords="322,80,375,107"/>
+<area shape="rect" id="node5" href="$lpc17__gpio_8h.html" title="lpc17_gpio.h" alt="" coords="1742,229,1846,256"/>
+<area shape="rect" id="node7" href="$lpc17__i2c_8h.html" title="I2C driver for LPC17xx. " alt="" coords="145,229,240,256"/>
+<area shape="rect" id="node8" href="$lpc17__ssp_8h.html" title="lpc17_ssp.h" alt="" coords="265,229,363,256"/>
+<area shape="rect" id="node11" href="$lpc17__spi_8h.html" title="Legacy SPI driver definitions for LPC17xx. " alt="" coords="439,229,533,256"/>
+<area shape="rect" id="node13" href="$lpc17__watchdog_8h.html" title="Definitions of Watchdog driver implementation for LPC17xx. " alt="" coords="687,229,826,256"/>
+<area shape="rect" id="node15" href="$lpc17__interruptions_8h.html" title="Interruptions control. " alt="" coords="1432,229,1591,256"/>
+<area shape="rect" id="node17" href="$lpc17__hpm_8h.html" title="Firmware update functions (HPM.1) " alt="" coords="557,229,663,256"/>
+<area shape="rect" id="node18" href="$lpc17__power_8h.html" title="Definitions of power mode selection for LPC17xx. " alt="" coords="1134,229,1249,256"/>
+<area shape="rect" id="node20" href="$lpc17__pincfg_8h.html" title="Pin Config functions redirection for LPC17xx. " alt="" coords="851,229,967,256"/>
+<area shape="rect" id="node22" href="$arm__cm3__reset_8h.html" title="arm_cm3_reset.h" alt="" coords="1273,229,1408,256"/>
+<area shape="rect" id="node23" href="$lpc17__uart_8h.html" title="LPC17xx UART interface definitions. " alt="" coords="1615,229,1717,256"/>
+</map>

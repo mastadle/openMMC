@@ -1,0 +1,11 @@
+<map id="modules/fpga_spi.h" name="modules/fpga_spi.h">
+<area shape="rect" id="node2" href="$fpga__spi_8c.html" title="modules/fpga_spi.c" alt="" coords="5,87,153,114"/>
+<area shape="rect" id="node3" href="$main_8c.html" title="modules/main.c" alt="" coords="177,87,304,114"/>
+<area shape="rect" id="node4" href="$sdr_8c.html" title="modules/sdr.c" alt="" coords="329,87,441,114"/>
+<area shape="rect" id="node5" href="$ina220_8c.html" title="INA220 interface implementation. " alt="" coords="465,87,656,114"/>
+<area shape="rect" id="node6" href="$ina3221_8c.html" title="INA3221 interface implementation. " alt="" coords="680,87,879,114"/>
+<area shape="rect" id="node7" href="$afc-bpm_2v3__1_2sdr__list_8c.html" title="port/board/afc&#45;bpm\l/v3_1/sdr_list.c" alt="" coords="903,80,1050,121"/>
+<area shape="rect" id="node8" href="$afc-fofb-ctrl_2v3__1_2sdr__list_8c.html" title="port/board/afc&#45;fofb\l&#45;ctrl/v3_1/sdr_list.c" alt="" coords="1075,80,1220,121"/>
+<area shape="rect" id="node9" href="$afc-timing_2sdr__list_8c.html" title="port/board/afc&#45;timing\l/sdr_list.c" alt="" coords="1245,80,1405,121"/>
+<area shape="rect" id="node10" href="$afc-v4_2sdr__list_8c.html" title="port/board/afc&#45;v4/sdr\l_list.c" alt="" coords="1429,80,1588,121"/>
+</map>
