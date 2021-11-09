@@ -161,6 +161,8 @@ void rtm_hardware_init( void )
     pca9554_write_port(CHIP_ID_RTM_PCA9554_PWR, (0 << RTM_GPIO_NEG_7V_EN) |
                        (1 << RTM_GPIO_7V_EN) | (0 << RTM_GPIO_VS1_EN) |
                        (0 << RTM_GPIO_VS2_EN) | (0 << RTM_GPIO_5V_EN));
+
+    rtm_enable_payload_power();
 }
 
 void rtm_enable_i2c( void )
