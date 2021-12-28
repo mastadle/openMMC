@@ -24,22 +24,25 @@
 #include "idt_8v54816.h"
 
 uint8_t clock_switch_default_config(void) {
-    clock_switch_set_single_channel(0,  IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5); // AMC_CLK / RTM_CLK
-    clock_switch_set_single_channel(1,  IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0); // FMC2_CLK1 / FMC2_CLK3
-    clock_switch_set_single_channel(2,  IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0); // FMC1_CLK1 / FMC1_CLK3
-    clock_switch_set_single_channel(3,  IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0); // FMC1_CLK1
-    clock_switch_set_single_channel(4,  IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0); // FMC1_CLK2
-    clock_switch_set_single_channel(5,  IDT_DIR_IN  | IDT_POL_P | IDT_TERM_ON  |  0); // SI57X
-    clock_switch_set_single_channel(6,  IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0); // FMC2_CLK0
-    clock_switch_set_single_channel(7,  IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5); // FMC2_CLK2
-    clock_switch_set_single_channel(8,  IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0); // TCLKD / FPGA_CLK3
-    clock_switch_set_single_channel(9,  IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0); // TCLKC / FPGA_CLK2
-    clock_switch_set_single_channel(10, IDT_DIR_IN  | IDT_POL_P | IDT_TERM_ON  |  0); // TCLKA
-    clock_switch_set_single_channel(11, IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0); // TCLKB
-    clock_switch_set_single_channel(12, IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5); // FLEX_CLK0
-    clock_switch_set_single_channel(13, IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5); // FLEX_CLK1
-    clock_switch_set_single_channel(14, IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5); // FLEX_CLK2
-    clock_switch_set_single_channel(15, IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5); // FLEX_CLK3
+    uint8_t clk_cfg[16] = {
+        [0]  = IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5, // AMC_CLK / RTM_CLK
+        [1]  = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0, // FMC2_CLK1 / FMC2_CLK3
+        [2]  = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0, // FMC1_CLK1 / FMC1_CLK3
+        [3]  = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0, // FMC1_CLK1
+        [4]  = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0, // FMC1_CLK2
+        [5]  = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_ON  |  0, // SI57X
+        [6]  = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0, // FMC2_CLK0
+        [7]  = IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5, // FMC2_CLK2
+        [8]  = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0, // TCLKD / FPGA_CLK3
+        [9]  = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0, // TCLKC / FPGA_CLK2
+        [10] = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0, // TCLKA
+        [11] = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF |  0, // TCLKB
+        [12] = IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5, // FLEX_CLK0
+        [13] = IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5, // FLEX_CLK1
+        [14] = IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5, // FLEX_CLK2
+        [15] = IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF |  5, // FLEX_CLK3
+    };
+    clock_switch_write_reg(clk_cfg);
     return 0;
 }
 
