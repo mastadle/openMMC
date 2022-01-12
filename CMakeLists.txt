@@ -59,6 +59,7 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG}" CACHE STRING "")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}" CACHE STRING "")
 
 set(PROJ_HDRS ${CMAKE_SOURCE_DIR} )
+set(UCONTROLLER_APP_LD_SCRIPT "")
 
 add_subdirectory(port/board)
 add_subdirectory(port/ucontroller)
@@ -100,12 +101,13 @@ endif()
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
   SUFFIX ".axf"
-  LINK_FLAGS "-T ${CMAKE_SOURCE_DIR}/linker/${TARGET_CONTROLLER}_app.ld -Wl,-Map=${CMAKE_SOURCE_DIR}/linker/${TARGET_CONTROLLER}_app.map" )
+  LINK_FLAGS "-T ${UCONTROLLER_APP_LD_SCRIPT} -Wl,-Map=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET_CONTROLLER}_app.map"
+  )
 
 # Headers path
 target_include_directories(${CMAKE_PROJECT_NAME} PUBLIC ${PROJ_HDRS})
 # Link libraries
-target_link_libraries(${CMAKE_PROJECT_NAME} FreeRTOS c gcc m ${PROJ_LIBS})
+target_link_libraries(${CMAKE_PROJECT_NAME} FreeRTOS gcc c ${PROJ_LIBS})
 
 
 
@@ -121,11 +123,12 @@ if(${BOARD} MATCHES "^(afc)")
   add_executable(bootloader ${BOOT_SRCS})
   set_target_properties(bootloader PROPERTIES
     SUFFIX ".axf"
-    LINK_FLAGS "-T ${CMAKE_SOURCE_DIR}/linker/${TARGET_CONTROLLER}_boot.ld -Wl,-Map=${CMAKE_SOURCE_DIR}/linker/${TARGET_CONTROLLER}_boot.map")
+    LINK_FLAGS "-T ${CMAKE_SOURCE_DIR}/linker/${TARGET_CONTROLLER}_boot.ld -Wl,-Map=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET_CONTROLLER}_boot.map"
+    )
   # Headers path
   target_include_directories(bootloader PUBLIC ${PROJ_HDRS})
   # Link libraries
-  target_link_libraries(bootloader gcc c m lpcopen)
+  target_link_libraries(bootloader gcc c lpcopen)
 
   add_custom_command(TARGET bootloader POST_BUILD
     COMMAND ${CMAKE_OBJCOPY} -O binary bootloader.axf bootloader.bin

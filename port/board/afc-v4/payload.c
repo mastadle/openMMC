@@ -64,7 +64,7 @@
  *       Wait until payload power goes down to restart the cycle
  */
 
-const external_gpio_t ext_gpios[15] = {
+const external_gpio_t ext_gpios[16] = {
         [EXT_GPIO_P1V5_VTT_EN] =     { 1, 7 },
         [EXT_GPIO_EN_P1V8] =         { 1, 6 },
         [EXT_GPIO_EN_P1V2] =         { 1, 5 },
@@ -79,6 +79,7 @@ const external_gpio_t ext_gpios[15] = {
         [EXT_GPIO_EN_RTM_PWR] =      { 0, 4 },
         [EXT_GPIO_EN_RTM_MP] =       { 0, 3 },
         [EXT_GPIO_FPGA_I2C_RESET] =  { 0, 2 },
+        [EXT_GPIO_DAC_VADJ_RSTn] =   { 0, 1 },
         [EXT_GPIO_PROGRAM_B] =       { 0, 0 }
 };
 
@@ -250,13 +251,6 @@ void payload_init( void )
 #ifdef MODULE_MCP23016
     if (!gpio_read_pin(PIN_PORT(GPIO_PGOOD_P1V0), PIN_NUMBER(GPIO_PGOOD_P1V0))){
 
-#ifdef MODULE_DAC_AD84XX
-        /* Configure the PVADJ DAC */
-        dac_ad84xx_init();
-        set_vadj_volt( 0, 2.5 );
-        set_vadj_volt( 1, 2.5 );
-#endif
-
         /*
          * Configure all GPIOs as outputs
          */
@@ -271,6 +265,24 @@ void payload_init( void )
         if (err != MMC_OK) {
             PRINT_ERR_LINE(err);
         }
+
+#ifdef MODULE_DAC_AD84XX
+        /* Configure the PVADJ DAC */
+        err = mcp23016_write_pin( ext_gpios[EXT_GPIO_DAC_VADJ_RSTn].port_num, ext_gpios[EXT_GPIO_DAC_VADJ_RSTn].pin_num, false );
+        if (err != MMC_OK) {
+            PRINT_ERR_LINE(err);
+        }
+
+        dac_ad84xx_init();
+
+        err = mcp23016_write_pin( ext_gpios[EXT_GPIO_DAC_VADJ_RSTn].port_num, ext_gpios[EXT_GPIO_DAC_VADJ_RSTn].pin_num, true );
+        if (err != MMC_OK) {
+            PRINT_ERR_LINE(err);
+        }
+
+        set_vadj_volt( 0, 2.5 );
+        set_vadj_volt( 1, 2.5 );
+#endif
 
         gpio_set_pin_state(PIN_PORT(GPIO_FPGA_RESET), PIN_NUMBER(GPIO_FPGA_RESET), GPIO_LEVEL_LOW);
         gpio_set_pin_state(PIN_PORT(GPIO_FPGA_INITB), PIN_NUMBER(GPIO_FPGA_INITB), GPIO_LEVEL_LOW);
@@ -427,128 +439,24 @@ void vTaskPayload( void *pvParameters )
 #include "flash_spi.h"
 #include "string.h"
 
-uint8_t *hpm_page = NULL;
-uint8_t hpm_pg_index;
-uint32_t hpm_page_addr;
-
 uint8_t payload_hpm_prepare_comp( void )
 {
-    mmc_err err;
-
-    /* Initialize variables */
-    if (hpm_page != NULL) {
-        vPortFree(hpm_page);
-    }
-
-    hpm_page = (uint8_t *) pvPortMalloc(PAYLOAD_HPM_PAGE_SIZE);
-
-    if (hpm_page == NULL) {
-        /* Malloc failed */
-        return IPMI_CC_OUT_OF_SPACE;
-    }
-
-    memset(hpm_page, 0xFF, sizeof(hpm_page));
-
-    hpm_pg_index = 0;
-    hpm_page_addr = 0;
-
-    /* Initialize flash */
-    ssp_init( FLASH_SPI, FLASH_SPI_BITRATE, FLASH_SPI_FRAME_SIZE, SSP_MASTER, SSP_INTERRUPT );
-
-    /* Prevent the FPGA from accessing the Flash to configure itself now */
-    err = mcp23016_write_pin( ext_gpios[EXT_GPIO_PROGRAM_B].port_num, ext_gpios[EXT_GPIO_PROGRAM_B].pin_num, true );
-
-    if (err != MMC_OK) {
-        PRINT_ERR_LINE(err);
-    }
-
-    err = mcp23016_write_pin( ext_gpios[EXT_GPIO_PROGRAM_B].port_num, ext_gpios[EXT_GPIO_PROGRAM_B].pin_num, false );
-
-    if (err != MMC_OK) {
-        PRINT_ERR_LINE(err);
-    }
-
-    err = mcp23016_write_pin( ext_gpios[EXT_GPIO_PROGRAM_B].port_num, ext_gpios[EXT_GPIO_PROGRAM_B].pin_num, true );
-
-    if (err != MMC_OK) {
-        PRINT_ERR_LINE(err);
-    }
-
-    err = mcp23016_write_pin( ext_gpios[EXT_GPIO_PROGRAM_B].port_num, ext_gpios[EXT_GPIO_PROGRAM_B].pin_num, false );
-
-    if (err != MMC_OK) {
-        PRINT_ERR_LINE(err);
-    }
-
-    /* Erase FLASH */
-    flash_bulk_erase();
-
-    return IPMI_CC_COMMAND_IN_PROGRESS;
+    return IPMI_CC_ILLEGAL_COMMAND_DISABLED;
 }
 
 uint8_t payload_hpm_upload_block( uint8_t * block, uint16_t size )
 {
-    /* TODO: Check DONE pin before accessing the SPI bus, since the FPGA may be reading it in order to boot */
-    uint8_t remaining_bytes_start;
-
-    if ( sizeof(hpm_page) - hpm_pg_index > size ) {
-        /* Our page is not full yet, just append the new data */
-        memcpy(&hpm_page[hpm_pg_index], block, size);
-        hpm_pg_index += size;
-
-        return IPMI_CC_OK;
-
-    } else {
-        /* Complete the remaining bytes on the buffer */
-        memcpy(&hpm_page[hpm_pg_index], block, (sizeof(hpm_page) - hpm_pg_index));
-        remaining_bytes_start = (sizeof(hpm_page) - hpm_pg_index);
-
-        /* Program the complete page in the Flash */
-        flash_program_page( hpm_page_addr, &hpm_page[0], sizeof(hpm_page));
-
-        hpm_page_addr += sizeof(hpm_page);
-
-        /* Empty our buffer and reset the index */
-        memset(hpm_page, 0xFF, sizeof(hpm_page));
-        hpm_pg_index = 0;
-
-        /* Save the trailing bytes */
-        memcpy(&hpm_page[hpm_pg_index], block+remaining_bytes_start, size-remaining_bytes_start);
-
-        hpm_pg_index = size-remaining_bytes_start;
-
-        return IPMI_CC_COMMAND_IN_PROGRESS;
-    }
+    return IPMI_CC_ILLEGAL_COMMAND_DISABLED;
 }
 
 uint8_t payload_hpm_finish_upload( uint32_t image_size )
 {
-    uint8_t cc = IPMI_CC_OK;
-
-    /* Check if the last page was already programmed */
-    if (!hpm_pg_index) {
-        /* Program the complete page in the Flash */
-        flash_program_page( hpm_page_addr, &hpm_page[0], (sizeof(hpm_page)-hpm_pg_index));
-        hpm_pg_index = 0;
-        hpm_page_addr = 0;
-
-        cc = IPMI_CC_COMMAND_IN_PROGRESS;
-    }
-
-    /* Free page buffer */
-    vPortFree(hpm_page);
-    hpm_page = NULL;
-
-    return cc;
+    return IPMI_CC_ILLEGAL_COMMAND_DISABLED;
 }
 
 uint8_t payload_hpm_get_upgrade_status( void )
 {
-    if (is_flash_busy()) {
-        return IPMI_CC_COMMAND_IN_PROGRESS;
-    } else {
-        return IPMI_CC_OK;
-    }
+    return IPMI_CC_ILLEGAL_COMMAND_DISABLED;
 }
 
 uint8_t payload_hpm_activate_firmware( void )
