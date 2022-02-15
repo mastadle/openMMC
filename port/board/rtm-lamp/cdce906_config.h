@@ -34,7 +34,7 @@ static const cdce906_cfg cdce906_rtm_cfg =
 {
 	.clksrc = CDCE906_CLK_SRC_CLKIN_DIFF,
 	.pll_div_m = {1, 1, 1},
-	.pll_div_n = {5, 1, 1},
+	.pll_div_n = {1, 1, 1},
 	.pll_vco_mux = {
 		CDCE906_PLL_VCO_MUX_PLL,
 		CDCE906_PLL_VCO_MUX_PLL,
