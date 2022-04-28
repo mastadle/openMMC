@@ -51,7 +51,7 @@ uint8_t clock_switch_default_config(void) {
         [FMC1_CLK2]           = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF | 0,
         [SI57X_PRI]           = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_ON  | 0,
         [FMC2_CLK0]           = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF | 0,
-        [FMC2_CLK2]           = IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF | SI57X_PRI,
+        [FMC2_CLK2]           = IDT_DIR_OUT | IDT_POL_P | IDT_TERM_OFF | TCLKA,
         [TCLKD_FPGA_CLK3]     = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF | 0,
         [TCLKC_FPGA_CLK2]     = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_OFF | 0,
         [TCLKA]               = IDT_DIR_IN  | IDT_POL_P | IDT_TERM_ON  | 0,
