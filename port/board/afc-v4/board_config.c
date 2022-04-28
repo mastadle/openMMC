@@ -70,6 +70,7 @@ void board_init() {
     gpio_set_pin_state(PIN_PORT(GPIO_I2C_MUX_ADDR1), PIN_NUMBER(GPIO_I2C_MUX_ADDR1), GPIO_LEVEL_LOW);
     gpio_set_pin_state(PIN_PORT(GPIO_I2C_MUX_ADDR2), PIN_NUMBER(GPIO_I2C_MUX_ADDR2), GPIO_LEVEL_LOW);
     gpio_set_pin_state(PIN_PORT(GPIO_I2C_SW_RESETn), PIN_NUMBER(GPIO_I2C_SW_RESETn), GPIO_LEVEL_HIGH);
+    gpio_set_pin_state(PIN_PORT(GPIO_FMC1_JTAG_Override), PIN_NUMBER(GPIO_FMC1_JTAG_Override), GPIO_LEVEL_HIGH);
 }
 
 void board_config() {
