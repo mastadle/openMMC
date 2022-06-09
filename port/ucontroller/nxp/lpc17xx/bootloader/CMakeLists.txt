@@ -26,8 +26,8 @@ set(CMAKE_ASM_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 set(CMAKE_ASM_FLAGS_RELEASE ${CMAKE_C_FLAGS_RELEASE})
 set(CMAKE_ASM_FLAGS_RELWITHDEBINFO ${CMAKE_C_FLAGS_RELWITHDEBINFO})
 
-set(LPC17_BOOT_FLAGS "-fno-exceptions -fdata-sections -ffunction-sections -Wall -mcpu=cortex-m3 -mlittle-endian -mthumb -I \"${BOOTLOADER_INC_PATH}\" -mlong-calls")
-set(LPC17_BOOT_LINK_FLAGS "${LPC17_BOOT_FLAGS} -Wl,--gc-sections --specs=nano.specs --specs=nosys.specs -nostartfiles -T \"${CMAKE_CURRENT_SOURCE_DIR}/../linker/${TARGET_CONTROLLER}_boot.ld\"")
+set(LPC17_BOOT_FLAGS "-fno-tree-loop-distribute-patterns -fno-exceptions -fno-unwind-tables -fdata-sections -ffunction-sections -Wall -mcpu=cortex-m3 -mlittle-endian -mthumb -I \"${BOOTLOADER_INC_PATH}\" -mlong-calls")
+set(LPC17_BOOT_LINK_FLAGS "${LPC17_BOOT_FLAGS} -Wl,--gc-sections -nostdlib -nostartfiles -T \"${CMAKE_CURRENT_SOURCE_DIR}/../linker/${TARGET_CONTROLLER}_boot.ld\"")
 message(STATUS "LPC17_BOOT_FLAGS: ${LPC17_BOOT_FLAGS}")
 message(STATUS "LPC17_BOOT_LINK_FLAGS: ${LPC17_BOOT_LINK_FLAGS}")
 message(STATUS "LPC17_FLAGS: ${LPC17_FLAGS}")
@@ -36,4 +36,9 @@ set_target_properties(newboot PROPERTIES
   COMPILE_FLAGS ${LPC17_BOOT_FLAGS}
   SUFFIX ".elf"
   LINK_FLAGS ${LPC17_BOOT_LINK_FLAGS}
+  )
+add_custom_command(TARGET newboot POST_BUILD
+  COMMAND ${CMAKE_OBJCOPY} -O binary newboot.elf newboot.bin
+  WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+  COMMENT "Generate a raw binary image of the bootloader"
   )

@@ -92,13 +92,12 @@ __Vectors_End:
 
 
                 .thumb
-                .section .text
+                .section .boot
                 .align   2
 
                 .thumb_func
                 .type    ResetISR, %function
                 .globl   ResetISR
-                .fnstart
 ResetISR:
                 ldr      r4, =__data_section_table
                 ldr      r5, =__data_section_table_end
@@ -106,9 +105,9 @@ ResetISR:
 .L_loop0:
                 cmp      r4, r5
                 bge      .L_loop0_done
-                ldr      r1, [r4]
-                ldr      r2, [r4, #4]
-                ldr      r3, [r4, #8]
+                ldr      r1, [r4]     // Flash address
+                ldr      r2, [r4, #4] // RAM address
+                ldr      r3, [r4, #8] // Size
 
 .L_loop0_0:
                 subs     r3, #4
@@ -140,10 +139,9 @@ ResetISR:
                 adds     r3, #8
                 b        .L_loop2
 .L_loop2_done:
+                ldr      r0,=main
+                blx      r0
 
-                bl       main
-
-                .fnend
                 .size    ResetISR, . - ResetISR
 
 /* The default macro is not used for HardFault_Handler
@@ -152,19 +150,15 @@ ResetISR:
                 .thumb_func
                 .type    HardFault_Handler, %function
                 .weak    HardFault_Handler
-                .fnstart
 HardFault_Handler:
                 b        .
-                .fnend
                 .size    HardFault_Handler, . - HardFault_Handler
 
                 .thumb_func
                 .type    Default_Handler, %function
                 .weak    Default_Handler
-                .fnstart
 Default_Handler:
                 b        .
-                .fnend
                 .size    Default_Handler, . - Default_Handler
 
 /* Macro to define default exception/interrupt handlers.
