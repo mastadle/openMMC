@@ -13,7 +13,7 @@ MEMORY
   __AppFlash_start      = 0x2000; /* Application start address (vector table) */
   __AppFlash_end        = 0x1FFF + 56K;  /* Application end address (last byte) */
   __FWUpdateFlash_start = 0x10000; /* Firmware update region start address */
-  __FWUpdateFlash_end   = 0x0FFFF + 64K; /* Firmware update region end address (last byte) */
+  __FWUpdateFlash_end   = 0x0DFFF + 64K; /* Firmware update region end address (last byte) */
 
   /* Last 256 bytes of flash reserved to the fw_info struct */
   __FWInfo_addr         = __FWUpdateFlash_end - 255;

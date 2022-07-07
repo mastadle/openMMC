@@ -36,10 +36,10 @@
 
 typedef struct
 {
+    uint8_t RESERVED[248];
     uint8_t version[3];
     uint8_t fw_type;
     uint32_t magic;
-    uint8_t RESERVED[248];
 } fw_info;
 
 /*
