@@ -31,6 +31,7 @@
 #include "iap.h"
 #include "modules/ipmi.h"
 #include "modules/sys_utils.h"
+#include "FreeRTOS.h"
 #include <string.h>
 #include "arm_cm3_reset.h"
 

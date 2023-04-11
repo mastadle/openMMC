@@ -213,7 +213,7 @@ void rtm_led_act( uint8_t id, uint8_t action )
 }
 #endif
 
-
+#ifdef MODULE_IPMI
 /* IPMI Request handlers */
 
 /*!
@@ -366,3 +366,4 @@ IPMI_HANDLER(ipmi_picmg_get_led_color_capabilities, NETFN_GRPEXT, IPMI_PICMG_CMD
     rsp->data_len = len;
     rsp->completion_code = IPMI_CC_OK;
 }
+#endif

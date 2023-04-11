@@ -25,16 +25,17 @@
  *   @license GPL-3.0+ <http://spdx.org/licenses/GPL-3.0+>
  */
 
-/* FreeRTOS Includes */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "semphr.h"
 
 /* Project Includes */
 #include "sdr.h"
 #include "sensors.h"
+#ifdef MODULE_IPMI
 #include "ipmi.h"
+#endif
 #include "fpga_spi.h"
+
+/* FreeRTOS Includes */
+#include "semphr.h"
 
 volatile uint8_t sdr_count = 0;
 
@@ -132,6 +133,10 @@ sensor_t * sdr_insert_entry( SDR_TYPE type, void * sdr, TaskHandle_t *monitor_ta
 
     sensor_t * entry = pvPortMalloc( sizeof(sensor_t) );
     memset( entry, 0, sizeof(sensor_t) );
+
+#ifndef MODULE_IPMI
+    const uint8_t ipmb_addr = 0;
+#endif
 
     entry->num = sdr_count;
     entry->sdr_type = type;
@@ -246,6 +251,7 @@ void sensor_disable(sensor_t *sensor)
     sensor->event_scan = 0x00;
 }
 
+#ifdef MODULE_IPMI
 /******************************/
 /* IPMI SDR Commands handlers */
 /******************************/
@@ -470,6 +476,12 @@ IPMI_HANDLER(ipmi_se_get_sensor_threshold, NETFN_SE, IPMI_GET_SENSOR_THRESHOLD_C
     rsp->data_len = len;
     rsp->completion_code = IPMI_CC_OK;
 }
+#else
+/// Dummy function
+int ipmi_event_send( sensor_t * sensor, uint8_t assert_deassert, uint8_t *evData, uint8_t length) {
+    return 0;
+}
+#endif
 
 /* Sensor state checking function adapted from CERN MMCv2 implementation, credits in this file header */
 void sensor_state_check( sensor_t *sensor )

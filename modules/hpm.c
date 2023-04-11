@@ -114,6 +114,7 @@ void hpm_init( void )
     memcpy(hpm_components[HPM_PAYLOAD_COMPONENT_ID].description, "Payload", sizeof("Payload"));
 }
 
+#ifdef MODULE_IPMI
 IPMI_HANDLER(ipmi_picmg_get_upgrade_capabilities, NETFN_GRPEXT, IPMI_PICMG_CMD_HPM_GET_UPGRADE_CAPABILITIES, ipmi_msg *req, ipmi_msg* rsp)
 {
     uint8_t len = rsp->data_len = 0;
@@ -377,3 +378,4 @@ IPMI_HANDLER(ipmi_picmg_activate_firmware, NETFN_GRPEXT, IPMI_PICMG_CMD_HPM_ACTI
     cmd_in_progress = req->cmd;
     last_cmd_cc = rsp->completion_code;
 }
+#endif

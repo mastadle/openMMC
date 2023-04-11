@@ -22,6 +22,8 @@
 #ifndef HPM_H_
 #define HPM_H_
 
+#include <stdint.h>
+
 #define HPM_SUPPORTED_VERSION 0x00
 
 #define FW_REV_MAJOR 1 /* Binary encoded */

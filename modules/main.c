@@ -29,7 +29,9 @@
 #include "port.h"
 #include "led.h"
 #include "pin_cfg.h"
+#ifdef MODULE_IPMI
 #include "ipmi.h"
+#endif
 #ifdef MODULE_PAYLOAD
 #include "payload.h"
 #endif
@@ -76,7 +78,9 @@ int main( void )
 
     i2c_init();
 
+#ifdef MODULE_IPMI
     ipmb_addr = get_ipmb_addr( );
+#endif
 
 #ifdef MODULE_FRU
     fru_init(FRU_AMC);
@@ -100,9 +104,11 @@ int main( void )
 #ifdef MODULE_RTM
     rtm_manage_init();
 #endif
+#ifdef MODULE_IPMI
     /*  Init IPMI interface */
     /* NOTE: ipmb_init() is called inside this function */
     ipmi_init();
+#endif
 
 #ifdef MODULE_BOARD_CONFIG
     board_config();

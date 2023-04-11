@@ -23,7 +23,12 @@
 #ifndef SDR_H_
 #define SDR_H_
 
+#ifdef MODULE_IPMI
 #include "ipmb.h"
+#endif
+#include "FreeRTOS.h"
+#include "task.h"
+#include <stdint.h>
 
 #define NUM_SENSOR                      21      /* Number of sensors */
 #define NUM_SDR                         (NUM_SENSOR+1)  /* Number of SDRs */

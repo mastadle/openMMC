@@ -2,6 +2,7 @@
 set(SENSOR_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 include_directories(${SENSOR_PATH})
+# set(PROJ_SRCS ${PROJ_SRCS} ${SENSOR_PATH}/sensors.c )
 
 if (";${TARGET_MODULES};" MATCHES ";HOTSWAP_SENSOR;")
   set(PROJ_SRCS ${PROJ_SRCS} ${SENSOR_PATH}/hotswap.c )

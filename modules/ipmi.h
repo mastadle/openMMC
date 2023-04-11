@@ -34,8 +34,10 @@
 #ifndef IPMI_H_
 #define IPMI_H_
 
+#ifdef MODULE_IPMI
 #include "ipmb.h"
 #include "sdr.h"
+#endif
 
 /**
  * @brief Maximum data bytes in an IPMI message
@@ -519,6 +521,7 @@
 #define FRU_CTLCODE_DIAGNOSTIC_INTERRUPT                        0x03
 #define FRU_CTLCODE_QUIESCE                                     0x04
 
+#ifdef MODULE_IPMI
 /**
  * @brief IPMI Handler function type definition
  *
@@ -609,5 +612,6 @@ t_req_handler ipmi_retrieve_handler(uint8_t netfn, uint8_t cmd);
  * @see ipmb.h
  */
 ipmb_error ipmi_event_send( sensor_t * sensor, uint8_t assert_deassert, uint8_t *evData, uint8_t length);
+#endif
 
 #endif
