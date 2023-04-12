@@ -11,6 +11,7 @@ endif()
 set(TARGET_MODULES
   # "FRU" # Don't use filed replaceable unit
   "NO_IPMI"
+  "CLI"
   "PAYLOAD"
   "SDR" # Don't need sensor data repository but sensor_init and sdr_head are required by other modules
   "SCANSTA1101"
@@ -44,6 +45,10 @@ set( PROJ_SRCS ${PROJ_SRCS} ${BOARD_PATH}/i2c_mapping.c )
 if (";${TARGET_MODULES};" MATCHES ";PAYLOAD;")
   set(PROJ_SRCS ${PROJ_SRCS} ${BOARD_PATH}/payload.c)
   set(MODULES_FLAGS "${MODULES_FLAGS} -DMODULE_PAYLOAD")
+endif()
+
+if (";${TARGET_MODULES};" MATCHES ";CLI;")
+  set(PROJ_SRCS ${PROJ_SRCS} ${BOARD_PATH}/cli_commands.c)
 endif()
 
 #Extra definitions
