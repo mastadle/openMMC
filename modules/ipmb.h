@@ -137,6 +137,15 @@ typedef enum {
     UNCONNECTED
 } GA_Pin_state;
 
+/**
+ * @brief AMC IPMB Address
+ *
+ * This variable saves this module's IPMB address read through the Geographical Address pins
+ *
+ * @see get_ipmb_addr
+ */
+extern uint8_t ipmb_addr;
+
 #ifdef MODULE_IPMI
 
 /**
@@ -191,15 +200,6 @@ typedef enum ipmb_error {
     ipmb_error_msg_chksum,              /**< Invalid message checksum from incoming message */
     ipmb_error_queue_creation           /**< Client queue couldn't be created. Invalid pointer to handler was given */
 } ipmb_error;
-
-/**
- * @brief AMC IPMB Address
- *
- * This variable saves this module's IPMB address read through the Geographical Address pins
- *
- * @see get_ipmb_addr
- */
-extern uint8_t ipmb_addr;
 
 /* Function Prototypes */
 

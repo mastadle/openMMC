@@ -29,9 +29,7 @@
 /* Project Includes */
 #include "sdr.h"
 #include "sensors.h"
-#ifdef MODULE_IPMI
 #include "ipmi.h"
-#endif
 #include "fpga_spi.h"
 
 /* FreeRTOS Includes */
@@ -139,10 +137,6 @@ sensor_t * sdr_insert_entry( SDR_TYPE type, void * sdr, TaskHandle_t *monitor_ta
 
     sensor_t * entry = pvPortMalloc( sizeof(sensor_t) );
     memset( entry, 0, sizeof(sensor_t) );
-
-#ifndef MODULE_IPMI
-    const uint8_t ipmb_addr = 0;
-#endif
 
     entry->num = sdr_count;
     entry->sdr_type = type;
