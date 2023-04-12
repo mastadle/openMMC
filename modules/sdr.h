@@ -238,6 +238,7 @@ void sensor_disable(sensor_t *sensor);
 void check_sensor_event( sensor_t * sensor );
 void sensor_state_check( sensor_t *sensor );
 sensor_t * sdr_insert_entry( SDR_TYPE type, void * sdr, TaskHandle_t *monitor_task, uint8_t diag_id, uint8_t slave_addr);
+sensor_t * sdr_add_settings(uint8_t chipid, void * settings);
 void sdr_remove_entry( sensor_t * entry );
 void sdr_pop( void );
 sensor_t * sdr_add_settings(uint8_t chipid, void * settings);

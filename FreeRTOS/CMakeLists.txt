@@ -33,6 +33,7 @@ set(LIBFREERTOS_SRCS ${LIBFREERTOS_SRCS}
   tasks.c
   event_groups.c
   openocd.c
+  FreeRTOS_CLI.c
   )
 
 include_directories(${UCONTROLLER_HDRS})

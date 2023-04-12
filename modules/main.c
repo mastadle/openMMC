@@ -41,12 +41,19 @@
 #include "fpga_spi.h"
 #include "watchdog.h"
 #include "uart_debug.h"
+
+#ifdef MODULE_CLI
+#include "cli.h"
+#endif
+
 #ifdef MODULE_RTM
 #include "rtm.h"
 #endif
 #ifdef MODULE_BOARD_CONFIG
 #include "board_config.h"
 #endif
+
+bool bench_test = false;
 
 /*-----------------------------------------------------------*/
 int main( void )
@@ -65,10 +72,6 @@ int main( void )
     printf("Build date: %s %s\n", __DATE__, __TIME__);
     printf("Version: %s\n", g_GIT_TAG);
     printf("SHA1: %s\n", g_GIT_SHA1);
-
-#ifdef BENCH_TEST
-    printf("BENCH_TEST mode activated! This will enable some debug functions, be careful!\n");
-#endif
 
 #ifdef MODULE_WATCHDOG
     watchdog_init();
@@ -103,6 +106,10 @@ int main( void )
 #endif
 #ifdef MODULE_RTM
     rtm_manage_init();
+#endif
+
+#ifdef MODULE_CLI
+    cli_init();
 #endif
 #ifdef MODULE_IPMI
     /*  Init IPMI interface */

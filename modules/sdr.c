@@ -110,6 +110,12 @@ void sensor_init( void )
 #if defined(MODULE_INA220_CURRENT) || defined(MODULE_INA220_VOLTAGE)
     ina220_init();
 #endif
+#ifdef MODULE_ADT7420
+    ADT7420_init();
+#endif
+#ifdef MODULE_INA219
+    ina219_init();
+#endif
 #if defined(MODULE_INA3221_CURRENT) || defined(MODULE_INA3221_VOLTAGE)
     ina3221_init();
 #endif

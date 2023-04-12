@@ -58,5 +58,12 @@
 #include "max6642.h"
 #endif
 
-// void sensor_init ( void );
+#ifdef MODULE_ADT7420
+#include "adt7420.h"
+#endif
+
+#ifdef MODULE_INA219
+#include "ina219.h"
+#endif
+
 #endif

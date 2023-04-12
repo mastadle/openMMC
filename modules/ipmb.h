@@ -29,13 +29,19 @@
 #ifndef IPMB_H_
 #define IPMB_H_
 
+#include "board_ipmb.h"
+
+#ifdef MODULE_IPMI
 /* FreeRTOS includes */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
-#include "board_ipmb.h"
+#endif
 
+#include <stdbool.h>
+
+extern bool bench_test;
 
 /**
  * @brief Maximum count of messages to be sent
@@ -130,6 +136,8 @@ typedef enum {
     POWERED,
     UNCONNECTED
 } GA_Pin_state;
+
+#ifdef MODULE_IPMI
 
 /**
  * @brief IPMI message struct
@@ -272,6 +280,7 @@ ipmb_error ipmb_register_rxqueue ( QueueHandle_t * queue );
  * @retval ipmb_error_hdr_chksum The final checksum byte is invalid.
  */
 ipmb_error ipmb_assert_chksum ( uint8_t * buffer, uint8_t buffer_len );
+#endif
 
 /**
  * @brief Reads own I2C slave address using GA pins

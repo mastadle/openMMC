@@ -90,6 +90,8 @@ ipmb_error ipmb_notify_client ( ipmi_msg_cfg * msg_cfg );
 /* Local variables */
 uint8_t ipmb_addr = 0xFF;
 
+bool bench_test = false;
+
 QueueHandle_t ipmb_txqueue = NULL;
 QueueHandle_t client_queue = NULL;
 
@@ -235,6 +237,10 @@ void IPMB_RXTask ( void *pvParameters )
 
 void ipmb_init ( void )
 {
+    if (bench_test) {
+        printf("BENCH_TEST mode activated! This will enable some debug functions, be careful!\n");
+    }
+
     vI2CConfig( IPMB_I2C, IPMB_I2C_FREQ );
 
     /* vI2CSlaveSetup expects i2c addr < 0x80, ipmb_addr is in format XXXX XXX0 */

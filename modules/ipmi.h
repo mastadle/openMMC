@@ -34,8 +34,8 @@
 #ifndef IPMI_H_
 #define IPMI_H_
 
-#ifdef MODULE_IPMI
 #include "ipmb.h"
+#ifdef MODULE_IPMI
 #include "sdr.h"
 #endif
 

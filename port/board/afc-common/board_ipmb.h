@@ -29,6 +29,8 @@
 #ifndef BOARD_IPMB_H_
 #define BOARD_IPMB_H_
 
+#include <stdint.h>
+
 /**
  * @brief Default I2C interface to use in IPMB protocol
  */

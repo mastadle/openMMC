@@ -70,11 +70,6 @@ include_directories( ${UCONTROLLER_HDRS} ${PROJ_HDRS} )
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTARGET_CONTROLLER=${TARGET_CONTROLLER} -DTARGET_BOARD_NAME=\"${TARGET_BOARD_NAME}\" ")
 
-if(BENCH_TEST)
-  set(MODULES_FLAGS "${MODULES_FLAGS} -DBENCH_TEST")
-  message( STATUS "${Magenta}Bench mode activated! ${ColourReset}")
-endif()
-
 # Get Git information
 git_describe(GIT_TAG "--tags")
 get_git_head_revision(GIT_REFSPEC GIT_SHA1)
@@ -88,7 +83,7 @@ link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 add_executable(${CMAKE_PROJECT_NAME} ${UCONTROLLER_SRCS} ${PROJ_SRCS})
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES COMPILE_FLAGS ${MODULES_FLAGS})
 
-if(${BOARD} MATCHES "^(afc)")
+if((${BOARD} MATCHES "^(afc)") OR (${BOARD} MATCHES "^(sayma)"))
   set(PROJ_LIBS lpcopen)
 else()
   message(FATAL_ERROR "${BOARD} not supported!")
