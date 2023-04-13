@@ -152,7 +152,9 @@ void set_vadj_volt( uint8_t fmc_slot, float v )
     uint32_t res_total;
     uint32_t res_dac;
 
+    // Rg - R2 = U_FB * R1/(v - U_FB) - R2
     res_total = (uint32_t) (1162.5/(v-0.775)) - 453;
+    // R3 * (Rg - R2) / (R3 - (Rg - R2) )
     res_dac = (1800*res_total)/(1800-res_total);
 
     /* Use only the lower 8-bits (the dac only has 256 steps) */
@@ -359,7 +361,7 @@ uint8_t payload_hpm_prepare_comp( void )
         return IPMI_CC_OUT_OF_SPACE;
     }
 
-    memset(hpm_page, 0xFF, sizeof(hpm_page));
+    memset(hpm_page, 0xFF, PAYLOAD_HPM_PAGE_SIZE);
 
     hpm_pg_index = 0;
     hpm_page_addr = 0;
@@ -379,12 +381,12 @@ uint8_t payload_hpm_prepare_comp( void )
     return IPMI_CC_COMMAND_IN_PROGRESS;
 }
 
-uint8_t payload_hpm_upload_block( uint8_t * block, uint16_t size )
+uint8_t payload_hpm_upload_block_repeat( bool repeat, uint8_t * block, uint16_t size )
 {
     /* TODO: Check DONE pin before accessing the SPI bus, since the FPGA may be reading it in order to boot */
     uint8_t remaining_bytes_start;
 
-    if ( sizeof(hpm_page) - hpm_pg_index > size ) {
+    if ( PAYLOAD_HPM_PAGE_SIZE - hpm_pg_index > size ) {
         /* Our page is not full yet, just append the new data */
         memcpy(&hpm_page[hpm_pg_index], block, size);
         hpm_pg_index += size;
@@ -392,17 +394,19 @@ uint8_t payload_hpm_upload_block( uint8_t * block, uint16_t size )
         return IPMI_CC_OK;
 
     } else {
+        if (!repeat)
+            hpm_page_addr += PAYLOAD_HPM_PAGE_SIZE;
+
         /* Complete the remaining bytes on the buffer */
-        memcpy(&hpm_page[hpm_pg_index], block, (sizeof(hpm_page) - hpm_pg_index));
-        remaining_bytes_start = (sizeof(hpm_page) - hpm_pg_index);
+        memcpy(&hpm_page[hpm_pg_index], block, (PAYLOAD_HPM_PAGE_SIZE - hpm_pg_index));
+        remaining_bytes_start = (PAYLOAD_HPM_PAGE_SIZE - hpm_pg_index);
 
         /* Program the complete page in the Flash */
-        flash_program_page( hpm_page_addr, &hpm_page[0], sizeof(hpm_page));
+        flash_program_page( hpm_page_addr, &hpm_page[0], PAYLOAD_HPM_PAGE_SIZE);
 
-        hpm_page_addr += sizeof(hpm_page);
 
         /* Empty our buffer and reset the index */
-        memset(hpm_page, 0xFF, sizeof(hpm_page));
+        memset(hpm_page, 0xFF, PAYLOAD_HPM_PAGE_SIZE);
         hpm_pg_index = 0;
 
         /* Save the trailing bytes */
@@ -421,7 +425,7 @@ uint8_t payload_hpm_finish_upload( uint32_t image_size )
     /* Check if the last page was already programmed */
     if (!hpm_pg_index) {
         /* Program the complete page in the Flash */
-        flash_program_page( hpm_page_addr, &hpm_page[0], (sizeof(hpm_page)-hpm_pg_index));
+        flash_program_page( hpm_page_addr, &hpm_page[0], (PAYLOAD_HPM_PAGE_SIZE-hpm_pg_index));
         hpm_pg_index = 0;
         hpm_page_addr = 0;
 

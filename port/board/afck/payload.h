@@ -37,6 +37,8 @@
 #define PAYLOAD_H_
 
 #include "event_groups.h"
+#include <stdbool.h>
+#include <stdint.h>
 
 /**
  * @brief Payload state machine state numbers
@@ -102,7 +104,10 @@ void payload_init( void );
 #define PAYLOAD_HPM_PAGE_SIZE    256
 
 uint8_t payload_hpm_prepare_comp( void );
-uint8_t payload_hpm_upload_block( uint8_t * block, uint16_t size );
+uint8_t payload_hpm_upload_block_repeat( bool repeat, uint8_t * block, uint16_t size );
+inline uint8_t payload_hpm_upload_block( uint8_t * block, uint16_t size ) {
+    return payload_hpm_upload_block_repeat(false, block, size);
+}
 uint8_t payload_hpm_finish_upload( uint32_t image_size );
 uint8_t payload_hpm_get_upgrade_status( void );
 uint8_t payload_hpm_activate_firmware( void );

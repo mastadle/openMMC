@@ -48,6 +48,7 @@ void dac_ad84xx_set_res( uint8_t addr, uint16_t res )
 {
     uint16_t data = 0;
 
+    // Wiper resistance is 50 Ohms
     if (res > 50) {
         data = ((res - 50)*256)/1000;
     }

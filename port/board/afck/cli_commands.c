@@ -24,6 +24,7 @@
 #include "FreeRTOS_CLI.h"
 #include "cli.h"
 #include "pin_mapping.h"
+#include "portmacro.h"
 #include "task.h"
 #include "semphr.h"
 #include "event_groups.h"
@@ -34,6 +35,7 @@
 #include "port.h"
 #include "ipmi.h"
 #include "task_priorities.h"
+#include "uart_17xx_40xx.h"
 #ifdef MODULE_PAYLOAD
 #include "payload.h"
 #endif
@@ -45,6 +47,7 @@
 #include "led.h"
 #include "GitSHA1.h"
 #include "i2c_mapping.h"
+#include "flash_spi.h"
 
 /* C Standard includes */
 #include <stdlib.h>
@@ -304,6 +307,84 @@ static BaseType_t I2cWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, c
     return pdFALSE;
 }
 
+#define FLASH_BUSY_TIMEOUT (256*8)
+unsigned flash_number_of_pages = 0;
+uint8_t flash_idx = 0;
+static BaseType_t FlashInitCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+    unsigned number_of_checks = 0;
+    while ( is_flash_busy() ) {
+        if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
+            strcpy(pcWriteBuffer, "timeout while waiting for flash");
+            return pdFALSE;
+        }
+    }
+    if (flash_number_of_pages == 0) {
+        uint8_t status = payload_hpm_prepare_comp();
+        if (status == IPMI_CC_OUT_OF_SPACE) {
+            strcpy(pcWriteBuffer, "MMC is out of memory. Abort.");
+            return pdFALSE;
+        }
+        strcpy(pcWriteBuffer, "flash writing in progress");
+        BaseType_t lParameterStringLength;
+        flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
+        gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
+        flash_number_of_pages = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength));
+    }
+
+    return pdFALSE;
+}
+
+static BaseType_t FlashUploadBlockCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+    unsigned number_of_checks = 0;
+    while ( is_flash_busy() ) {
+        if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
+            strcpy(pcWriteBuffer, "timeout while waiting for flash");
+            return pdFALSE;
+        }
+    }
+    BaseType_t lParameterStringLength;
+    bool repeat = strcmp("r", FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
+    if (!repeat) {
+        --flash_number_of_pages;
+    }
+    uint8_t block[PAYLOAD_HPM_PAGE_SIZE];
+    Chip_UART_ReadBlocking(LPC_UART3, block, PAYLOAD_HPM_PAGE_SIZE);
+    payload_hpm_upload_block_repeat(repeat, block, PAYLOAD_HPM_PAGE_SIZE);
+    Chip_UART_SendBlocking(LPC_UART3, block, PAYLOAD_HPM_PAGE_SIZE);
+
+    return pdFALSE;
+}
+
+static BaseType_t FlashFinaliseCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+    unsigned number_of_checks = 0;
+    while ( is_flash_busy() ) {
+        if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
+            strcpy(pcWriteBuffer, "timeout while waiting for flash");
+            return pdFALSE;
+        }
+    }
+    BaseType_t lParameterStringLength;
+    uint32_t image_size = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
+    payload_hpm_finish_upload(image_size);
+
+    return pdFALSE;
+}
+
+static BaseType_t FlashActivateFirmwareCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+    payload_hpm_activate_firmware();
+    return pdFALSE;
+}
+
+static BaseType_t FPGAResetCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+    gpio_set_pin_high(PIN_PORT(GPIO_FPGA_RESET), PIN_NUMBER(GPIO_FPGA_RESET));
+    gpio_set_pin_low(PIN_PORT(GPIO_FPGA_RESET), PIN_NUMBER(GPIO_FPGA_RESET));
+    return pdFALSE;
+}
 
 static const CLI_Command_Definition_t GpioReadCommandDefinition = {
     "gpio_read",
@@ -354,6 +435,41 @@ static const CLI_Command_Definition_t I2cWriteCommandDefinition = {
     -1
 };
 
+static const CLI_Command_Definition_t FlashInitCommandDefinition = {
+    "flash_init",
+    "\r\nflash_init <flash index> <number of pages>:\r\n Initialise FPGA boot flash\r\n",
+    FlashInitCommand,
+    2
+};
+
+static const CLI_Command_Definition_t FlashUploadBlockCommandDefinition = {
+    "flash_upload",
+    "\r\nflash_upload <r>:\r\n Write FPGA boot flash block. Add argument r if previous block gets resend and for initial block\r\n",
+    FlashUploadBlockCommand,
+    1
+};
+
+static const CLI_Command_Definition_t FlashFinaliseCommandDefinition = {
+    "flash_final",
+    "\r\nflash_final <image_size>:\r\n Finalise FPGA boot flash and reboot FPGA\r\n",
+    FlashFinaliseCommand,
+    1
+};
+
+static const CLI_Command_Definition_t FlashActivateFirmwareCommandDefinition = {
+    "flash_activate_firmware",
+    "\r\nflash_activate_firmware:\r\n Reboot the FPGA from flash\r\n",
+    FlashActivateFirmwareCommand,
+    0
+};
+
+static const CLI_Command_Definition_t FPGAResetCommandDefinition = {
+    "fpga_reset",
+    "\r\nfpga_reset:\r\n Assert and deassert FPGA reset signal\r\n",
+    FPGAResetCommand,
+    0
+};
+
 /**
  * @brief Registers all the defined CLI commands.
  */
@@ -371,4 +487,11 @@ void RegisterCLICommands(void)
     // I2C
     FreeRTOS_CLIRegisterCommand(&I2cReadCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&I2cWriteCommandDefinition);
+
+    // Flash
+    FreeRTOS_CLIRegisterCommand(&FlashInitCommandDefinition);
+    FreeRTOS_CLIRegisterCommand(&FlashUploadBlockCommandDefinition);
+    FreeRTOS_CLIRegisterCommand(&FlashFinaliseCommandDefinition);
+    FreeRTOS_CLIRegisterCommand(&FlashActivateFirmwareCommandDefinition);
+    FreeRTOS_CLIRegisterCommand(&FPGAResetCommandDefinition);
 }

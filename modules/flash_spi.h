@@ -22,7 +22,7 @@
 #ifndef FLASH_SPI_H_
 #define FLASH_SPI_H_
 
-#define FLASH_SPI_BITRATE                1000000
+#define FLASH_SPI_BITRATE                20000000
 #define FLASH_SPI_FRAME_SIZE             8
 
 /* M25P128 Flash commands */

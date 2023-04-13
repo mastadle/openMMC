@@ -83,6 +83,7 @@ static void CommandConsoleTask(void *pvParameters)
             if (cRxedChar == '\r') {
                 /* A newline character was received, so the input command string is
                  complete and can be processed. */
+                Chip_UART_SendBlocking(LPC_UART3, "\n", 1);
 
                 /* The command interpreter is called repeatedly until it returns pdFALSE.*/
                 do {
