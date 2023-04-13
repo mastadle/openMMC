@@ -50,8 +50,11 @@
 #ifdef MODULE_BOARD_CONFIG
 #include "board_config.h"
 #endif
+#ifndef BENCH_TEST
+#define BENCH_TEST false
+#endif
 
-bool bench_test = false;
+bool bench_test = BENCH_TEST;
 uint8_t ipmb_addr = 0xFF;
 
 /*-----------------------------------------------------------*/
