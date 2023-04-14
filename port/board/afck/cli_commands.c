@@ -398,6 +398,20 @@ static BaseType_t FlashActivateFirmwareCommand(char *pcWriteBuffer, size_t xWrit
     return pdFALSE;
 }
 
+static BaseType_t FlashReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+    pcWriteBuffer[0] = '\0';
+    BaseType_t lParameterStringLength;
+    flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
+    gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
+    int page_index = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength));
+    uint8_t block[PAYLOAD_HPM_PAGE_SIZE];
+    flash_fast_read_data(PAYLOAD_HPM_PAGE_SIZE*page_index, block, sizeof(block));
+    Chip_UART_SendBlocking(LPC_UART3, block, PAYLOAD_HPM_PAGE_SIZE);
+    strncat(pcWriteBuffer, "\r\n", xWriteBufferLen);
+    return pdFALSE;
+}
+
 static BaseType_t FPGAResetCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
     pcWriteBuffer[0] = '\0';
@@ -483,6 +497,13 @@ static const CLI_Command_Definition_t FlashActivateFirmwareCommandDefinition = {
     1
 };
 
+static const CLI_Command_Definition_t FlashReadCommandDefinition = {
+    "flash_read",
+    "\r\nflash_read <flash index> <page index>:\r\n Read one block from SPI flash and print it\r\n",
+    FlashReadCommand,
+    2
+};
+
 static const CLI_Command_Definition_t FPGAResetCommandDefinition = {
     "fpga_reset",
     "\r\nfpga_reset:\r\n Assert and deassert FPGA reset signal\r\n",
@@ -513,5 +534,6 @@ void RegisterCLICommands(void)
     FreeRTOS_CLIRegisterCommand(&FlashUploadBlockCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&FlashFinaliseCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&FlashActivateFirmwareCommandDefinition);
+    FreeRTOS_CLIRegisterCommand(&FlashReadCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&FPGAResetCommandDefinition);
 }
