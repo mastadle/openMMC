@@ -53,14 +53,17 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#define MAX_GPIO_NAME_LENGTH 20
 static BaseType_t GpioReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
-    char *name;
+    char name[MAX_GPIO_NAME_LENGTH];
+    name[0] = '\0';
     uint8_t value, port, pin;
     BaseType_t lParameterStringLength;
 
     // Get GPIO name
-    name = (char *) FreeRTOS_CLIGetParameter((const char *) pcCommandString, 1, &lParameterStringLength);
+    const char* param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength);
+    strncat(name, param, MAX_GPIO_NAME_LENGTH-1);
 
     // Convert GPIO name to lower-case
     for (int i = 0; name[i]; i++) {
@@ -133,21 +136,21 @@ static BaseType_t GpioReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, c
         port = atoi(FreeRTOS_CLIGetParameter((const char *) pcCommandString, 1, &lParameterStringLength));
         pin = atoi(FreeRTOS_CLIGetParameter((const char *) pcCommandString, 2, &lParameterStringLength));
         if (!lParameterStringLength) {
-            sprintf((char *) pcWriteBuffer, "GPIO name <%s> not recognized.", name);
+            snprintf(pcWriteBuffer, xWriteBufferLen, "GPIO name <%s> not recognized.", name);
             return pdFALSE;
         }
         value = gpio_read_pin(port, pin);
     }
 
     // Write GPIO value to the output buffer
-    itoa(value, (char *) pcWriteBuffer, 10);
+    itoa(value, pcWriteBuffer, 10);
 
     return pdFALSE;
 }
 
 static BaseType_t GpioWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
-    char name[MAX_INPUT_LENGTH];
+    char name[MAX_GPIO_NAME_LENGTH];
     uint8_t value;
     BaseType_t param_1_length, param_2_length;
 
@@ -155,7 +158,7 @@ static BaseType_t GpioWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
     value = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &param_2_length));
 
     // Get GPIO name
-    strcpy(name, FreeRTOS_CLIGetParameter(pcCommandString, 1, &param_1_length));
+    strncat(name, FreeRTOS_CLIGetParameter(pcCommandString, 1, &param_1_length), MAX_GPIO_NAME_LENGTH-1);
 
     // Convert GPIO name to lower-case
     for (int i = 0; name[i]; i++) {
@@ -198,7 +201,7 @@ static BaseType_t GpioWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
     }
 
     else {
-        sprintf(pcWriteBuffer, "GPIO name <%s> not recognized.", name);
+        snprintf(pcWriteBuffer, xWriteBufferLen, "GPIO name <%s> not recognized.", name);
         return pdFALSE;
     }
 
@@ -312,20 +315,21 @@ unsigned flash_number_of_pages = 0;
 uint8_t flash_idx = 0;
 static BaseType_t FlashInitCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
+    pcWriteBuffer[0] = '\0';
     unsigned number_of_checks = 0;
     while ( is_flash_busy() ) {
         if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
-            strcpy(pcWriteBuffer, "timeout while waiting for flash");
+            strncat(pcWriteBuffer, "timeout while waiting for flash\r\n", xWriteBufferLen);
             return pdFALSE;
         }
     }
     if (flash_number_of_pages == 0) {
         uint8_t status = payload_hpm_prepare_comp();
         if (status == IPMI_CC_OUT_OF_SPACE) {
-            strcpy(pcWriteBuffer, "MMC is out of memory. Abort.");
+            strncat(pcWriteBuffer, "MMC is out of memory. Abort.\r\n", xWriteBufferLen);
             return pdFALSE;
         }
-        strcpy(pcWriteBuffer, "flash writing in progress");
+        strncat(pcWriteBuffer, "flash writing in progress\r\n", xWriteBufferLen);
         BaseType_t lParameterStringLength;
         flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
         gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
@@ -337,10 +341,11 @@ static BaseType_t FlashInitCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
 
 static BaseType_t FlashUploadBlockCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
+    pcWriteBuffer[0] = '\0';
     unsigned number_of_checks = 0;
     while ( is_flash_busy() ) {
         if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
-            strcpy(pcWriteBuffer, "timeout while waiting for flash");
+            strncat(pcWriteBuffer, "timeout while waiting for flash\r\n", xWriteBufferLen);
             return pdFALSE;
         }
     }
@@ -359,12 +364,16 @@ static BaseType_t FlashUploadBlockCommand(char *pcWriteBuffer, size_t xWriteBuff
 
 static BaseType_t FlashFinaliseCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
+    pcWriteBuffer[0] = '\0';
     unsigned number_of_checks = 0;
     while ( is_flash_busy() ) {
         if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
-            strcpy(pcWriteBuffer, "timeout while waiting for flash");
+            strcpy(pcWriteBuffer, "timeout while waiting for flash\r\n");
             return pdFALSE;
         }
+    }
+    if (flash_number_of_pages > 0) {
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Finalising incomplete flash. Missing %i pages.\r\n", flash_number_of_pages);
     }
     BaseType_t lParameterStringLength;
     uint32_t image_size = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
@@ -375,14 +384,16 @@ static BaseType_t FlashFinaliseCommand(char *pcWriteBuffer, size_t xWriteBufferL
 
 static BaseType_t FlashActivateFirmwareCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
+    BaseType_t lParameterStringLength;
+    flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
+    gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
     payload_hpm_activate_firmware();
     return pdFALSE;
 }
 
 static BaseType_t FPGAResetCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
-    gpio_set_pin_high(PIN_PORT(GPIO_FPGA_RESET), PIN_NUMBER(GPIO_FPGA_RESET));
-    gpio_set_pin_low(PIN_PORT(GPIO_FPGA_RESET), PIN_NUMBER(GPIO_FPGA_RESET));
+    payload_send_message(FRU_AMC, PAYLOAD_MESSAGE_REBOOT);
     return pdFALSE;
 }
 
@@ -444,7 +455,7 @@ static const CLI_Command_Definition_t FlashInitCommandDefinition = {
 
 static const CLI_Command_Definition_t FlashUploadBlockCommandDefinition = {
     "flash_upload",
-    "\r\nflash_upload <r>:\r\n Write FPGA boot flash block. Add argument r if previous block gets resend and for initial block\r\n",
+    "\r\nflash_upload <r>:\r\n Write FPGA boot flash block. Optionally repeat previous block\r\n",
     FlashUploadBlockCommand,
     1
 };
@@ -458,7 +469,7 @@ static const CLI_Command_Definition_t FlashFinaliseCommandDefinition = {
 
 static const CLI_Command_Definition_t FlashActivateFirmwareCommandDefinition = {
     "flash_activate_firmware",
-    "\r\nflash_activate_firmware:\r\n Reboot the FPGA from flash\r\n",
+    "\r\nflash_activate_firmware <flash index>:\r\n Reboot the FPGA from flash 0 or 1\r\n",
     FlashActivateFirmwareCommand,
     0
 };
