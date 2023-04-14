@@ -329,11 +329,13 @@ static BaseType_t FlashInitCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
             strncat(pcWriteBuffer, "MMC is out of memory. Abort.\r\n", xWriteBufferLen);
             return pdFALSE;
         }
-        strncat(pcWriteBuffer, "flash writing in progress\r\n", xWriteBufferLen);
+        strncat(pcWriteBuffer, "Initialising flash write\r\n", xWriteBufferLen);
         BaseType_t lParameterStringLength;
         flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
         gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
         flash_number_of_pages = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength));
+    } else {
+        snprintf(pcWriteBuffer, xWriteBufferLen, "flash writing in progress. %i pages to go\r\n", flash_number_of_pages);
     }
 
     return pdFALSE;
@@ -358,7 +360,8 @@ static BaseType_t FlashUploadBlockCommand(char *pcWriteBuffer, size_t xWriteBuff
     Chip_UART_ReadBlocking(LPC_UART3, block, PAYLOAD_HPM_PAGE_SIZE);
     payload_hpm_upload_block_repeat(repeat, block, PAYLOAD_HPM_PAGE_SIZE);
     Chip_UART_SendBlocking(LPC_UART3, block, PAYLOAD_HPM_PAGE_SIZE);
-
+    
+    strncat(pcWriteBuffer, "\r\n", xWriteBufferLen);
     return pdFALSE;
 }
 
@@ -368,12 +371,14 @@ static BaseType_t FlashFinaliseCommand(char *pcWriteBuffer, size_t xWriteBufferL
     unsigned number_of_checks = 0;
     while ( is_flash_busy() ) {
         if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
-            strcpy(pcWriteBuffer, "timeout while waiting for flash\r\n");
+            strncat(pcWriteBuffer, "timeout while waiting for flash\r\n", xWriteBufferLen);
             return pdFALSE;
         }
     }
     if (flash_number_of_pages > 0) {
         snprintf(pcWriteBuffer, xWriteBufferLen, "Finalising incomplete flash. Missing %i pages.\r\n", flash_number_of_pages);
+    } else {
+        strncat(pcWriteBuffer, "Finalising flash\r\n", xWriteBufferLen);
     }
     BaseType_t lParameterStringLength;
     uint32_t image_size = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
@@ -384,16 +389,20 @@ static BaseType_t FlashFinaliseCommand(char *pcWriteBuffer, size_t xWriteBufferL
 
 static BaseType_t FlashActivateFirmwareCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
+    pcWriteBuffer[0] = '\0';
     BaseType_t lParameterStringLength;
     flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
     gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
     payload_hpm_activate_firmware();
+    strncat(pcWriteBuffer, "\r\n", xWriteBufferLen);
     return pdFALSE;
 }
 
 static BaseType_t FPGAResetCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
+    pcWriteBuffer[0] = '\0';
     payload_send_message(FRU_AMC, PAYLOAD_MESSAGE_REBOOT);
+    strncat(pcWriteBuffer, "\r\n", xWriteBufferLen);
     return pdFALSE;
 }
 
@@ -471,7 +480,7 @@ static const CLI_Command_Definition_t FlashActivateFirmwareCommandDefinition = {
     "flash_activate_firmware",
     "\r\nflash_activate_firmware <flash index>:\r\n Reboot the FPGA from flash 0 or 1\r\n",
     FlashActivateFirmwareCommand,
-    0
+    1
 };
 
 static const CLI_Command_Definition_t FPGAResetCommandDefinition = {

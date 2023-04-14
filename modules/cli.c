@@ -117,7 +117,9 @@ static void CommandConsoleTask(void *pvParameters)
                 else if (cRxedChar == '\b' || cRxedChar == '\177') {
                     /* Backspace was pressed.  Erase the last character in the input
                      buffer - if there are any. */
+                    Chip_UART_SendByte(LPC_UART3, ' ');
                     if (cInputIndex > 0) {
+                        Chip_UART_SendByte(LPC_UART3, cRxedChar);
                         cInputIndex--;
                         pcInputString[cInputIndex] = '\0';
                     }
