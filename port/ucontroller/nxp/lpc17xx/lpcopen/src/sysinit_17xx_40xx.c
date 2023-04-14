@@ -73,9 +73,14 @@ void Chip_SetupIrcClocking(void)
 	Chip_Clock_EnablePLL(SYSCTL_MAIN_PLL, SYSCTL_PLL_CONNECT);
 }
 
-#define CLOCK_100MHZ
+#define CLOCK_96MHZ
 #ifdef CLOCK_100MHZ
 #define PLL_M (25-1)
+#define PLL_N (1-1)
+#define CLK_DIV (4-1)
+#endif
+#ifdef CLOCK_96MHZ
+#define PLL_M (24-1)
 #define PLL_N (1-1)
 #define CLK_DIV (4-1)
 #endif
@@ -191,4 +196,8 @@ void Chip_SetupXtalClocking(void)
 void Chip_SystemInit(void)
 {
     Chip_SetupXtalClocking();
+#if defined(CLOCK_100MHZ) || defined(CLOCK_96MHZ)
+     /* Setup FLASH access to 4 clocks (100MHz clock) */
+    Chip_SYSCTL_SetFLASHAccess(FLASHTIM_100MHZ_CPU);
+#endif
 }

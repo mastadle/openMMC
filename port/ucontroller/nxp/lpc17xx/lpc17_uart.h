@@ -40,7 +40,7 @@ typedef struct lpc_uart_cfg {
 
 extern const lpc_uart_cfg_t usart_cfg[4];
 
-#define uart_set_baud( id, baud ) Chip_UART_SetBaud( usart_cfg[id].ptr, baud )
+#define uart_set_baud( id, baud ) Chip_UART_SetBaudFDR( usart_cfg[id].ptr, baud )
 #define uart_config_data( id, cfg ) Chip_UART_ConfigData( usart_cfg[id].ptr, cfg )
 #define uart_tx_enable( id ) Chip_UART_TXEnable( usart_cfg[id].ptr )
 #define uart_tx_disable( id ) Chip_UART_TXDisable( usart_cfg[id].ptr )

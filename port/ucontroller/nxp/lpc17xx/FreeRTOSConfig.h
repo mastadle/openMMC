@@ -38,6 +38,7 @@ licensing and training services.
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
+#include "chip_lpc175x_6x.h"
 /*-----------------------------------------------------------
  * Application specific definitions.
  *
@@ -53,7 +54,7 @@ licensing and training services.
 #define configMAX_PRIORITIES                    ( 6 )
 #define configUSE_TICK_HOOK                     0
 #if defined(CHIP_LPC175X_6X)
-#define configCPU_CLOCK_HZ                      ( ( unsigned long ) 8000000 )
+#define configCPU_CLOCK_HZ                      ( ( unsigned long ) SystemCoreClock )
 #else
 #define configCPU_CLOCK_HZ                      ( ( unsigned long ) 80000000 ) // OSC (8 MHz) -> PLL0 (80 MHz) -> CPU CLK
 #endif

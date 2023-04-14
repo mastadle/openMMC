@@ -52,15 +52,15 @@ To make a debug build (to include symbols into axf file, turn off optimizations,
 ## Programming
 
 ### OpenOCD
-Flashing the MMC microcontroller via SWD/JTAG is supported for CMSIS-DAP and Jlink compatible probes through OpenOCD. You can specify the debug probe with the flag `-DDEBUG_PROBE=<probe_name>`, valid options are `cmsis-dap` (default) and `jlink`.
+Flashing the MMC microcontroller via SWD/JTAG is supported for CMSIS-DAP and Jlink compatible probes through OpenOCD. You can specify the debug probe with the flag `-DDEBUG_PROBE=<probe_name>`, valid options are `cmsis-dap` (default) and `jlink`. If you want to use the JTAG protocol instead of SWD, you can use `-DOPENOCD_TRANSPORT=jtag`.
 
-	cmake ~/openmmc/ -DBOARD=afc -DVERSION=3.1 -DDEBUG_PROBE=cmsis-dap
+	cmake ~/openmmc/ -DBOARD=afc -DVERSION=3.1 -DDEBUG_PROBE=cmsis-dap -DOPENOCD_TRANSPORT=swd
 
 This will create a `openocd.cfg` file in `<build_dir>/out`.
 
 To flash the application firmware only, run
 
-    make program_app
+	make program_app
 
 To flash the bootloader firmware only, run
 
@@ -82,8 +82,7 @@ It is possible to debug the MMC firmware using OpenOCD and GDB. First, connect O
 
 Then open GDB:
 
-	$ arm-none-eabi-gdb out/openMMC.axf
-	(gdb) target remote localhost:3333
+	$ arm-none-eabi-gdb out/openMMC.axf -ex "target extended-remote localhost:3333"
 
 Now you can use the typical GDB commands to inspect the program flow and variables. Some useful commands when interacting with a microcontroller trough OpenOCD are listed below: 
 
