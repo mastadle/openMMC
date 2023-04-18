@@ -24,18 +24,12 @@
 #include "FreeRTOS_CLI.h"
 #include "cli.h"
 #include "pin_mapping.h"
-#include "portmacro.h"
-#include "task.h"
-#include "semphr.h"
-#include "event_groups.h"
 
 /* Project Includes */
 #include "cli_commands.h"
 
 #include "port.h"
 #include "ipmi.h"
-#include "task_priorities.h"
-#include "uart_17xx_40xx.h"
 #ifdef MODULE_PAYLOAD
 #include "payload.h"
 #endif
@@ -357,9 +351,9 @@ static BaseType_t FlashUploadBlockCommand(char *pcWriteBuffer, size_t xWriteBuff
         --flash_number_of_pages;
     }
     uint8_t block[PAYLOAD_HPM_PAGE_SIZE];
-    Chip_UART_ReadBlocking(LPC_UART3, block, PAYLOAD_HPM_PAGE_SIZE);
+    uart_read_blocking(UART_DEBUG, block, PAYLOAD_HPM_PAGE_SIZE);
     payload_hpm_upload_block_repeat(repeat, block, PAYLOAD_HPM_PAGE_SIZE);
-    Chip_UART_SendBlocking(LPC_UART3, block, PAYLOAD_HPM_PAGE_SIZE);
+    uart_send(UART_DEBUG, block, PAYLOAD_HPM_PAGE_SIZE);
     
     strncat(pcWriteBuffer, "\r\n", xWriteBufferLen);
     return pdFALSE;
@@ -407,7 +401,7 @@ static BaseType_t FlashReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
     int page_index = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength));
     uint8_t block[PAYLOAD_HPM_PAGE_SIZE];
     flash_fast_read_data(PAYLOAD_HPM_PAGE_SIZE*page_index, block, sizeof(block));
-    Chip_UART_SendBlocking(LPC_UART3, block, PAYLOAD_HPM_PAGE_SIZE);
+    uart_send(UART_DEBUG, block, PAYLOAD_HPM_PAGE_SIZE);
     strncat(pcWriteBuffer, "\r\n", xWriteBufferLen);
     return pdFALSE;
 }

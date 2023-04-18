@@ -49,6 +49,7 @@
 #include "arm_cm3_reset.h"
 
 #ifdef UART_RINGBUFFER
+#include "ring_buffer.h"
 #include "lpc17_uartrb.h"
 #else
 #include "lpc17_uart.h"

@@ -30,6 +30,8 @@
  */
 
 #include "chip.h"
+#include "ring_buffer.h"
+#include "uart_17xx_40xx.h"
 
 /*****************************************************************************
  * Private types/enumerations/variables
@@ -129,7 +131,7 @@ void Chip_UART_Init(LPC_USART_T *pUART)
 	Chip_Clock_EnablePeriphClock(Chip_UART_GetClockIndex(pUART));
 
 	/* Enable FIFOs by default, reset them */
-	Chip_UART_SetupFIFOS(pUART, (UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS));
+	Chip_UART_SetupFIFOS(pUART, (UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS | UART_FCR_TRG_LEV3));
     
     /* Disable Tx */
     Chip_UART_TXDisable(pUART);
@@ -373,8 +375,8 @@ void Chip_UART_IRQRBHandler(LPC_USART_T *pUART, RINGBUFF_T *pRXRB, RINGBUFF_T *p
 	/* Handle receive interrupt */
 	Chip_UART_RXIntHandlerRB(pUART, pRXRB);
 
-    /* Handle Autobaud interrupts */
-    Chip_UART_ABIntHandler(pUART);
+	/* Handle Autobaud interrupts */
+	Chip_UART_ABIntHandler(pUART);
 }
 
 /* Determines and sets best dividers to get a target baud rate */

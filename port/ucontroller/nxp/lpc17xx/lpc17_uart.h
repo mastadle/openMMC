@@ -49,7 +49,8 @@ extern const lpc_uart_cfg_t usart_cfg[4];
 #define uart_send_char( id, ch ) Chip_UART_SendByte( usart_cfg[id].ptr, ch )
 #define uart_read_char( id ) Chip_UART_ReadByte( usart_cfg[id].ptr )
 #define uart_send( id, msg, len ) Chip_UART_SendBlocking( usart_cfg[id].ptr, msg, len )
-#define uart_read( id, buf, len ) Chip_UART_ReadBlocking( usart_cfg[id].ptr, buf, len )
+#define uart_read( id, buf, len ) Chip_UART_Read( usart_cfg[id].ptr, buf, len )
+#define uart_read_blocking( id, buf, len ) Chip_UART_ReadBlocking( usart_cfg[id].ptr, buf, len )
 
 void uart_init ( uint8_t id );
 

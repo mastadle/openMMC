@@ -64,11 +64,11 @@ void uart_init ( uint8_t id )
     Chip_UART_Init( usart_cfg[id].ptr );
 
     /* Maximum 921600 baud rate of CP2102 */
-    uart_set_baud( UART_DEBUG, 921600 );
+    uart_set_baud( id, 921600 );
 
     /* Defaults to 8N1, no parity */
-    uart_config_data( UART_DEBUG, ( UART_LCR_WLEN8 | UART_LCR_SBS_1BIT | UART_LCR_PARITY_DIS ) );
+    uart_config_data( id, ( UART_LCR_WLEN8 | UART_LCR_SBS_1BIT | UART_LCR_PARITY_DIS ) );
 
-    uart_tx_enable ( UART_DEBUG );
+    uart_tx_enable ( id );
 }
 #endif

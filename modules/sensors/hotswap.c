@@ -149,7 +149,8 @@ void vTaskHotSwap( void *Parameters )
                 old_state_amc = new_state_amc;
             }
             if (bench_test) {
-            old_state_amc = new_state_amc;
+                old_state_amc = new_state_amc;
+                payload_send_message(FRU_AMC, PAYLOAD_MESSAGE_QUIESCE);
             }
         }
 

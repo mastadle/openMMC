@@ -27,20 +27,22 @@
 #ifndef LPC17_UART_H_
 #define LPC17_UART_H_
 
-#include "semphr.h"
 #include "string.h"
 #include "stdio.h"
 
 typedef struct lpc_uart_cfg {
     LPC_USART_T * ptr;
     IRQn_Type irq;
+#ifdef CHIP_LPC175X_6X
+    CHIP_SYSCTL_PCLK_T sysclk;
+#endif
 } lpc_uart_cfg_t;
 
-volatile lpc_uart_cfg_t usart_cfg[4];
+extern const lpc_uart_cfg_t usart_cfg[4];
 
-RINGBUFF_T rxring, txring;
+extern RINGBUFF_T rxring, txring;
 
-#define uart_set_baud( id, baud ) Chip_UART_SetBaud( usart_cfg[id].ptr, baud )
+#define uart_set_baud( id, baud ) Chip_UART_SetBaudFDR( usart_cfg[id].ptr, baud )
 #define uart_config_data( id, cfg ) Chip_UART_ConfigData( usart_cfg[id].ptr, cfg )
 #define uart_tx_enable( id ) Chip_UART_TXEnable( usart_cfg[id].ptr )
 #define uart_tx_disable( id ) Chip_UART_TXDisable( usart_cfg[id].ptr )
@@ -48,8 +50,9 @@ RINGBUFF_T rxring, txring;
 #define uart_int_disable( id, mask ) Chip_UART_IntDisable( usart_cfg[id].ptr, mask )
 #define uart_send_char( id, ch ) Chip_UART_SendByte( usart_cfg[id].ptr, ch )
 #define uart_read_char( id ) Chip_UART_ReadByte( usart_cfg[id].ptr )
-#define uart_send( id, msg, len ) Chip_UART_SendRB( usart_cfg[id].ptr, &txring, msg, len )
 #define uart_read( id, buf, len ) Chip_UART_ReadRB( usart_cfg[id].ptr, &rxring, buf, len )
 void uart_init( uint8_t id );
+int uart_send( uint8_t id, const void * msg, int len);
+int uart_read_blocking( uint8_t id, void * buf, int len);
 
 #endif

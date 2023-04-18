@@ -38,7 +38,7 @@ licensing and training services.
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
 
-#include "chip_lpc175x_6x.h"
+#include "chip.h"
 /*-----------------------------------------------------------
  * Application specific definitions.
  *
