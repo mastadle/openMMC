@@ -39,6 +39,14 @@
 #define FLASH_SECTOR_ERASE 0xD8
 #define FLASH_BULK_ERASE 0xC7
 
+#define FLASH_READ_STATUS_WRITE_IN_PROGRESS 0x01
+#define FLASH_READ_STATUS_WRITE_ENABLE_LATCH 0x02
+#define FLASH_READ_STATUS_BLOCK_PROTECT_0 0x04
+#define FLASH_READ_STATUS_BLOCK_PROTECT_1 0x08
+#define FLASH_READ_STATUS_BLOCK_PROTECT_2 0x10
+// 0x20 and 0x40 are always 0
+#define FLASH_READ_STATUS_STATUS_REGISTER_WRITE_PROTECT 0x80
+
 void flash_write_enable( void );
 void flash_write_disable( void );
 void flash_read_id( uint8_t * id_buffer, uint8_t buff_size );

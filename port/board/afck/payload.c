@@ -42,6 +42,9 @@
 #include "fru.h"
 #include "led.h"
 #include "board_led.h"
+#ifdef MODULE_HPM
+#include "flash_spi.h"
+#endif
 
 /* payload states
  *   0 - No power
@@ -185,10 +188,10 @@ TaskHandle_t vTaskPayload_Handle;
 void payload_init( void )
 {
 
-if (!bench_test) {
-    /* Wait until ENABLE# signal is asserted ( ENABLE == 0) */
-    while ( gpio_read_pin( PIN_PORT(GPIO_MMC_ENABLE), PIN_NUMBER(GPIO_MMC_ENABLE) ) == 1 ) {};
-}
+    if (!bench_test) {
+        /* Wait until ENABLE# signal is asserted ( ENABLE == 0) */
+        while ( gpio_read_pin( PIN_PORT(GPIO_MMC_ENABLE), PIN_NUMBER(GPIO_MMC_ENABLE) ) == 1 ) {};
+    }
 
     xTaskCreate( vTaskPayload, "Payload", 120, NULL, tskPAYLOAD_PRIORITY, &vTaskPayload_Handle );
 
@@ -203,6 +206,11 @@ if (!bench_test) {
     set_vadj_volt( 0, 2.5 );
     set_vadj_volt( 1, 2.5 );
 #endif
+#ifdef MODULE_HPM
+    /* Initialize flash */
+    ssp_init( FLASH_SPI, FLASH_SPI_BITRATE, FLASH_SPI_FRAME_SIZE, SSP_MASTER, SSP_INTERRUPT );
+#endif
+
 
     gpio_set_pin_state( PIN_PORT(GPIO_FPGA_RESET), PIN_NUMBER(GPIO_FPGA_RESET), GPIO_LEVEL_HIGH );
 }
@@ -340,9 +348,6 @@ void vTaskPayload( void *pvParameters )
 /* HPM Functions */
 #ifdef MODULE_HPM
 
-#include "flash_spi.h"
-#include "string.h"
-
 uint8_t *hpm_page = NULL;
 uint8_t hpm_pg_index;
 uint32_t hpm_page_addr;
@@ -365,9 +370,6 @@ uint8_t payload_hpm_prepare_comp( void )
 
     hpm_pg_index = 0;
     hpm_page_addr = 0;
-
-    /* Initialize flash */
-    ssp_init( FLASH_SPI, FLASH_SPI_BITRATE, FLASH_SPI_FRAME_SIZE, SSP_MASTER, SSP_INTERRUPT );
 
     /* Prevent the FPGA from accessing the Flash to configure itself now */
     gpio_set_pin_state( PIN_PORT(GPIO_FPGA_PROGRAM_B), PIN_NUMBER(GPIO_FPGA_PROGRAM_B), GPIO_LEVEL_HIGH );

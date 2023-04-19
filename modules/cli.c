@@ -78,13 +78,10 @@ static void CommandConsoleTask(void *pvParameters)
         /* Only interested in reading one character at a time. */
         if (uart_read(UART_DEBUG, &cRxedChar, 1)) {
 
-            /* Echo the character back. */
-            uart_send(UART_DEBUG, &cRxedChar, 1);
-
             if (cRxedChar == '\r') {
                 /* A newline character was received, so the input command string is
                  complete and can be processed. */
-                uart_send(UART_DEBUG, "\n", 1);
+                uart_send(UART_DEBUG, "\r\n", 2);
 
                 /* The command interpreter is called repeatedly until it returns pdFALSE.*/
                 do {
@@ -118,7 +115,6 @@ static void CommandConsoleTask(void *pvParameters)
                 else if (cRxedChar == '\b' || cRxedChar == '\177') {
                     /* Backspace was pressed.  Erase the last character in the input
                      buffer - if there are any. */
-                    uart_send(UART_DEBUG, " ", 1);
                     if (cInputIndex > 0) {
                         uart_send(UART_DEBUG, &cRxedChar, 1);
                         cInputIndex--;
@@ -132,6 +128,8 @@ static void CommandConsoleTask(void *pvParameters)
                      string will be passed to the command interpreter. */
                     if ((cRxedChar >= ' ') && (cRxedChar <= '~')) {
                         if (cInputIndex < MAX_INPUT_LENGTH) {
+                            /* Echo the character back. */
+                            uart_send(UART_DEBUG, &cRxedChar, 1);
                             pcInputString[cInputIndex] = cRxedChar;
                             cInputIndex++;
                         }

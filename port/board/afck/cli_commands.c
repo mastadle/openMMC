@@ -250,18 +250,16 @@ static BaseType_t I2cReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, co
     }
 
     if (received_len != read_len) {
-        strcpy(pcWriteBuffer, "\r\nERROR, try again");
+        strcpy(pcWriteBuffer, "ERROR, try again\r\n");
     }
 
-    strcpy(pcWriteBuffer, "\r\n");
     pcWriteBuffer += 2;
+    xWriteBufferLen -= 2;
     for (uint8_t i = 0; i < received_len; i++) {
-        itoa(read_data[i], pcWriteBuffer, 10);
-        pcWriteBuffer = &pcWriteBuffer[strlen(pcWriteBuffer)];
-        *pcWriteBuffer = ' ';
-        pcWriteBuffer++;
+        snprintf(pcWriteBuffer, xWriteBufferLen, "0x%02x ", read_data[i]);
+        pcWriteBuffer += 5;
+        xWriteBufferLen -= 5;
     }
-    strcat(pcWriteBuffer, "\r\n");
     return pdFALSE;
 }
 
@@ -297,9 +295,9 @@ static BaseType_t I2cWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, c
     }
 
     if (write_len == tx_num - 1) {
-        strcpy(pcWriteBuffer, "\r\nOK");
+        strcpy(pcWriteBuffer, "OK");
     } else {
-        strcpy(pcWriteBuffer, "\r\nERROR, try again");
+        strcpy(pcWriteBuffer, "ERROR, try again");
     }
     return pdFALSE;
 }
@@ -310,27 +308,20 @@ uint8_t flash_idx = 0;
 static BaseType_t FlashInitCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
     pcWriteBuffer[0] = '\0';
-    unsigned number_of_checks = 0;
-    while ( is_flash_busy() ) {
-        if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
-            strncat(pcWriteBuffer, "timeout while waiting for flash\r\n", xWriteBufferLen);
-            return pdFALSE;
-        }
-    }
+    BaseType_t lParameterStringLength;
     if (flash_number_of_pages == 0) {
-        uint8_t status = payload_hpm_prepare_comp();
-        if (status == IPMI_CC_OUT_OF_SPACE) {
-            strncat(pcWriteBuffer, "MMC is out of memory. Abort.\r\n", xWriteBufferLen);
-            return pdFALSE;
-        }
-        strncat(pcWriteBuffer, "Initialising flash write\r\n", xWriteBufferLen);
-        BaseType_t lParameterStringLength;
         flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
         gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
-        flash_number_of_pages = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength));
+        uint8_t status = payload_hpm_prepare_comp();
+        if (status == IPMI_CC_OUT_OF_SPACE) {
+            strncat(pcWriteBuffer, "MMC is out of memory. Abort.", xWriteBufferLen);
+            return pdFALSE;
+        }
+        strncat(pcWriteBuffer, "Initialising flash write", xWriteBufferLen);
     } else {
-        snprintf(pcWriteBuffer, xWriteBufferLen, "flash writing in progress. %i pages to go\r\n", flash_number_of_pages);
+        snprintf(pcWriteBuffer, xWriteBufferLen, "flash writing in progress. %d pages to go. Aborting", flash_number_of_pages);
     }
+    flash_number_of_pages = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength));
 
     return pdFALSE;
 }
@@ -341,7 +332,7 @@ static BaseType_t FlashUploadBlockCommand(char *pcWriteBuffer, size_t xWriteBuff
     unsigned number_of_checks = 0;
     while ( is_flash_busy() ) {
         if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
-            strncat(pcWriteBuffer, "timeout while waiting for flash\r\n", xWriteBufferLen);
+            strncat(pcWriteBuffer, "timeout while waiting for flash", xWriteBufferLen);
             return pdFALSE;
         }
     }
@@ -355,7 +346,6 @@ static BaseType_t FlashUploadBlockCommand(char *pcWriteBuffer, size_t xWriteBuff
     payload_hpm_upload_block_repeat(repeat, block, PAYLOAD_HPM_PAGE_SIZE);
     uart_send(UART_DEBUG, block, PAYLOAD_HPM_PAGE_SIZE);
     
-    strncat(pcWriteBuffer, "\r\n", xWriteBufferLen);
     return pdFALSE;
 }
 
@@ -365,14 +355,14 @@ static BaseType_t FlashFinaliseCommand(char *pcWriteBuffer, size_t xWriteBufferL
     unsigned number_of_checks = 0;
     while ( is_flash_busy() ) {
         if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
-            strncat(pcWriteBuffer, "timeout while waiting for flash\r\n", xWriteBufferLen);
+            strncat(pcWriteBuffer, "timeout while waiting for flash", xWriteBufferLen);
             return pdFALSE;
         }
     }
     if (flash_number_of_pages > 0) {
-        snprintf(pcWriteBuffer, xWriteBufferLen, "Finalising incomplete flash. Missing %i pages.\r\n", flash_number_of_pages);
+        snprintf(pcWriteBuffer, xWriteBufferLen, "Finalising incomplete flash. Missing %d pages.", flash_number_of_pages);
     } else {
-        strncat(pcWriteBuffer, "Finalising flash\r\n", xWriteBufferLen);
+        strncat(pcWriteBuffer, "Finalising flash", xWriteBufferLen);
     }
     BaseType_t lParameterStringLength;
     uint32_t image_size = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
@@ -388,7 +378,6 @@ static BaseType_t FlashActivateFirmwareCommand(char *pcWriteBuffer, size_t xWrit
     flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
     gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
     payload_hpm_activate_firmware();
-    strncat(pcWriteBuffer, "\r\n", xWriteBufferLen);
     return pdFALSE;
 }
 
@@ -400,9 +389,8 @@ static BaseType_t FlashReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
     gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
     int page_index = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength));
     uint8_t block[PAYLOAD_HPM_PAGE_SIZE];
-    flash_fast_read_data(PAYLOAD_HPM_PAGE_SIZE*page_index, block, sizeof(block));
+    flash_fast_read_data(sizeof(block)*PAYLOAD_HPM_PAGE_SIZE*page_index, block, sizeof(block));
     uart_send(UART_DEBUG, block, PAYLOAD_HPM_PAGE_SIZE);
-    strncat(pcWriteBuffer, "\r\n", xWriteBufferLen);
     return pdFALSE;
 }
 
@@ -410,7 +398,6 @@ static BaseType_t FPGAResetCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
 {
     pcWriteBuffer[0] = '\0';
     payload_send_message(FRU_AMC, PAYLOAD_MESSAGE_REBOOT);
-    strncat(pcWriteBuffer, "\r\n", xWriteBufferLen);
     return pdFALSE;
 }
 

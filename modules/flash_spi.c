@@ -33,7 +33,7 @@ void flash_write_enable( void )
     do {
         uint8_t tx_buff[1] = {FLASH_WRITE_ENABLE};
         ssp_write( FLASH_SPI, tx_buff, sizeof(tx_buff) );
-    } while (!(flash_read_status_reg() & 0x2));
+    } while (!(flash_read_status_reg() & FLASH_READ_STATUS_WRITE_ENABLE_LATCH));
 }
 
 void flash_write_disable( void )
@@ -41,7 +41,7 @@ void flash_write_disable( void )
     do {
         uint8_t tx_buff[1] = {FLASH_WRITE_DISABLE};
         ssp_write( FLASH_SPI, tx_buff, sizeof(tx_buff) );
-    } while (flash_read_status_reg() & 0x2);
+    } while (flash_read_status_reg() & FLASH_READ_STATUS_WRITE_ENABLE_LATCH);
 }
 
 void flash_read_id( uint8_t * id_buffer, uint8_t buff_size )
@@ -198,5 +198,5 @@ void flash_bulk_erase( void )
 uint8_t is_flash_busy( void )
 {
     uint8_t status = flash_read_status_reg();
-    return (status & 0x01);
+    return (status & FLASH_READ_STATUS_WRITE_IN_PROGRESS);
 }
