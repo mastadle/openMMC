@@ -43,24 +43,25 @@ with serial.Serial(port=args.comport,
             bin_file_bytes=f.read()
 
             # Ceil division
-            self.n_pages = -1*(-len(bin_file_bytes)//FLASH_PAGE_SIZE)
+            n_pages = -1*(-len(bin_file_bytes)//FLASH_PAGE_SIZE)
             # Pad 0s
             bin_file_bytes += b'\0'*(n_pages*FLASH_PAGE_SIZE-len(bin_file_bytes))
 
             com_port.reset_input_buffer()
-            com_port.write(f"flash_init {n_pages} {args.spi_index}\r\n".encode("utf8"))
+            com_port.write(f"flash_init {args.spi_index} {n_pages}\r\n".encode("utf8"))
             print(com_port.read_until())
             msg = com_port.read_until()
             print(msg)
             success_msg = "Initialising flash write"
-            if msg[0:len(success_msg)] != success_msg:
+            if msg[0:len(success_msg)].decode() != success_msg:
                 # Memory allocation didn't occur yet, we can abort
                 sys.exit(3)
 
             preincrement_page = False
             timeout_ctr = 0
             try:
-                for page in range(n_pages):
+                page = 0
+                while (page < n_pages):
                     cmd_str = "flash_upload" + (" i" if preincrement_page else " r") + "\r\n"
                     com_port.write(cmd_str.encode())
                     print(com_port.read_until())
@@ -68,20 +69,31 @@ with serial.Serial(port=args.comport,
                     com_port.write(page_bytes)
                     readback = com_port.read(FLASH_PAGE_SIZE)
                     if (readback != page_bytes):
-                        page -= 1
                         preincrement_page = False
-                        if (readback[0:7] == "timeout"):
+                        if (readback[0:7].decode() == "timeout"):
                             print(readback)
                             timeout_ctr += 1
                         else:
+                            print(page_bytes)
+                            print(readback)
                             print(com_port.read_until())
                     else:
-                        preincrement_page = True
+                        print(com_port.read_until())
+                        cmd_str = f"flash_read {args.spi_index} {page}\r\n"
+                        com_port.write(cmd_str.encode())
+                        print(com_port.read_until())
+                        readback = com_port.read(FLASH_PAGE_SIZE)
+                        if (readback != page_bytes):
+                            preincrement_page = False
+                        else:
+                            preincrement_page = True
+                            page += 1
                         print(com_port.read_until())
 
                     if timeout_ctr > 100:
                         break
-            except:
+            except Exception as e:
+                print(e)
                 exit_code = 1
 
             finally:
@@ -93,6 +105,8 @@ with serial.Serial(port=args.comport,
     if args.activate and exit_code == 0:
         com_port.reset_input_buffer()
         com_port.write(f"flash_activate_firmware {args.spi_index}\r\n".encode())
+        # com_port.write(f"fpga_reset\r\n".encode())
+        print(com_port.read_until())
         msg = com_port.read_until()
         print(msg)
 
