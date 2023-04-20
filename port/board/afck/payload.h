@@ -103,7 +103,10 @@ void payload_init( void );
 
 #define PAYLOAD_HPM_PAGE_SIZE    256
 
-uint8_t payload_hpm_prepare_comp( void );
+uint8_t payload_hpm_prepare_comp_pages( uint16_t pages );
+inline uint8_t payload_hpm_prepare_comp( void ) {
+    return payload_hpm_prepare_comp_pages(UINT16_MAX);
+}
 uint8_t payload_hpm_upload_block_repeat( bool repeat, uint8_t * block, uint16_t size );
 inline uint8_t payload_hpm_upload_block( uint8_t * block, uint16_t size ) {
     return payload_hpm_upload_block_repeat(false, block, size);

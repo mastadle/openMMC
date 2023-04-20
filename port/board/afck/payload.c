@@ -352,7 +352,7 @@ uint8_t *hpm_page = NULL;
 uint8_t hpm_pg_index;
 uint32_t hpm_page_addr;
 
-uint8_t payload_hpm_prepare_comp( void )
+uint8_t payload_hpm_prepare_comp_pages( uint16_t pages )
 {
     /* Initialize variables */
     if (hpm_page != NULL) {
@@ -377,8 +377,15 @@ uint8_t payload_hpm_prepare_comp( void )
     gpio_set_pin_state( PIN_PORT(GPIO_FPGA_PROGRAM_B), PIN_NUMBER(GPIO_FPGA_PROGRAM_B), GPIO_LEVEL_HIGH );
     gpio_set_pin_state( PIN_PORT(GPIO_FPGA_PROGRAM_B), PIN_NUMBER(GPIO_FPGA_PROGRAM_B), GPIO_LEVEL_LOW );
 
-    /* Erase FLASH */
-    flash_bulk_erase();
+    if (pages == UINT16_MAX) {
+        /* Erase FLASH */
+        flash_bulk_erase();
+    } else {
+        for (unsigned sector = 0; sector <= pages/1024; ++sector) {
+            /* A sector is 1024 pages, a page is 256 bytes, 2**18 in bytes per sector */
+            flash_sector_erase(sector << 18);
+        }
+    }
 
     return IPMI_CC_COMMAND_IN_PROGRESS;
 }
@@ -396,8 +403,8 @@ uint8_t payload_hpm_upload_block_repeat( bool repeat, uint8_t * block, uint16_t 
         return IPMI_CC_OK;
 
     } else {
-        if (!repeat)
-            hpm_page_addr += PAYLOAD_HPM_PAGE_SIZE;
+        if (repeat)
+            hpm_page_addr -= PAYLOAD_HPM_PAGE_SIZE;
 
         /* Complete the remaining bytes on the buffer */
         memcpy(&hpm_page[hpm_pg_index], block, (PAYLOAD_HPM_PAGE_SIZE - hpm_pg_index));
@@ -415,6 +422,7 @@ uint8_t payload_hpm_upload_block_repeat( bool repeat, uint8_t * block, uint16_t 
         memcpy(&hpm_page[hpm_pg_index], block+remaining_bytes_start, size-remaining_bytes_start);
 
         hpm_pg_index = size-remaining_bytes_start;
+        hpm_page_addr += PAYLOAD_HPM_PAGE_SIZE;
 
         return IPMI_CC_COMMAND_IN_PROGRESS;
     }

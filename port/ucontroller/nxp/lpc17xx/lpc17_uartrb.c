@@ -107,7 +107,7 @@ int uart_read_blocking( uint8_t id, void * buf, int len)
         int number_of_pops = RingBuffer_GetCount(&rxring);
         if (len < number_of_pops) number_of_pops = len;
         if (number_of_pops)	{
-            number_of_pops = RingBuffer_PopMult(&rxring, (uint8_t *) buf, number_of_pops);
+            number_of_pops = RingBuffer_PopMult(&rxring, (uint8_t *) buf + n_chars_read, number_of_pops);
             len -= number_of_pops;
             n_chars_read += number_of_pops;
         }

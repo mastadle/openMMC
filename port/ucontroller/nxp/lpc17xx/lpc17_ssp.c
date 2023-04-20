@@ -26,6 +26,7 @@
  */
 
 #include "port.h"
+#include "ssp_17xx_40xx.h"
 #include "string.h"
 #include "pin_mapping.h"
 
