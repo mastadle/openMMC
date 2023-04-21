@@ -124,9 +124,53 @@ static int printi(char **out, int i, int b, int sg, int width, int pad, int letb
     return pc + prints (out, s, width, pad);
 }
 
+static int printli(char **out, long int i, int b, int sg, int width, int pad, int letbase)
+{
+    char print_buf[PRINT_BUF_LEN];
+    register char *s;
+    register int t, neg = 0, pc = 0;
+    register long unsigned int u = i;
+
+    if (i == 0) {
+        print_buf[0] = '0';
+        print_buf[1] = '\0';
+        return prints (out, print_buf, width, pad);
+    }
+
+    if (sg && b == 10 && i < 0) {
+        neg = 1;
+        u = -i;
+    }
+
+    s = print_buf + PRINT_BUF_LEN-1;
+    *s = '\0';
+
+    while (u) {
+        t = u % b;
+        if( t >= 10 )
+            t += letbase - '0' - 10;
+        *--s = t + '0';
+        u /= b;
+    }
+
+    if (neg) {
+        if( width && (pad & PAD_ZERO) ) {
+            printchar (out, '-');
+            ++pc;
+            --width;
+        }
+        else {
+            *--s = '-';
+        }
+    }
+
+    return pc + prints (out, s, width, pad);
+}
+
 static int print( char **out, const char *format, va_list args )
 {
     register int width, pad;
+    register bool is_long = false;
     register int pc = 0;
     char scr[2];
 
@@ -153,20 +197,36 @@ static int print( char **out, const char *format, va_list args )
                 pc += prints (out, s?s:"(null)", width, pad);
                 continue;
             }
+            if( *format == 'l' ) {
+                ++format;
+                is_long = true;
+            }
             if( *format == 'd' ) {
-                pc += printi (out, va_arg( args, int ), 10, 1, width, pad, 'a');
+                if (is_long)
+                    pc += printli (out, va_arg( args, long int ), 10, 1, width, pad, 'a');
+                else
+                    pc += printi (out, va_arg( args, int ), 10, 1, width, pad, 'a');
                 continue;
             }
             if( *format == 'x' ) {
-                pc += printi (out, va_arg( args, int ), 16, 0, width, pad, 'a');
+                if (is_long)
+                    pc += printli (out, va_arg( args, long int ), 16, 0, width, pad, 'a');
+                else
+                    pc += printi (out, va_arg( args, int ), 16, 0, width, pad, 'a');
                 continue;
             }
             if( *format == 'X' ) {
-                pc += printi (out, va_arg( args, int ), 16, 0, width, pad, 'A');
+                if (is_long)
+                    pc += printli (out, va_arg( args, long int ), 16, 0, width, pad, 'A');
+                else
+                    pc += printi (out, va_arg( args, int ), 16, 0, width, pad, 'A');
                 continue;
             }
             if( *format == 'u' ) {
-                pc += printi (out, va_arg( args, int ), 10, 0, width, pad, 'a');
+                if (is_long)
+                    pc += printli (out, va_arg( args, long int ), 10, 0, width, pad, 'a');
+                else
+                    pc += printi (out, va_arg( args, int ), 10, 0, width, pad, 'a');
                 continue;
             }
             if( *format == 'c' ) {

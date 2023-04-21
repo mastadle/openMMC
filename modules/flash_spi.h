@@ -47,6 +47,9 @@
 // 0x20 and 0x40 are always 0
 #define FLASH_READ_STATUS_STATUS_REGISTER_WRITE_PROTECT 0x80
 
+#define FLASH_ID_MT25QL256 0x20ba19
+#define FLASH_ID_M25P128 0x202018
+
 void flash_write_enable( void );
 void flash_write_disable( void );
 void flash_read_id( uint8_t * id_buffer, uint8_t buff_size );

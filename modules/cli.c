@@ -116,7 +116,7 @@ static void CommandConsoleTask(void *pvParameters)
                     /* Backspace was pressed.  Erase the last character in the input
                      buffer - if there are any. */
                     if (cInputIndex > 0) {
-                        uart_send(UART_DEBUG, &cRxedChar, 1);
+                        uart_send(UART_DEBUG, "\b \b", 3);
                         cInputIndex--;
                         pcInputString[cInputIndex] = '\0';
                     }

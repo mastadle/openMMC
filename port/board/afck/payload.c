@@ -23,6 +23,7 @@
 /* FreeRTOS Includes */
 #include "FreeRTOS.h"
 #include "pin_mapping.h"
+#include "portmacro.h"
 #include "task.h"
 #include "semphr.h"
 #include "event_groups.h"
@@ -277,6 +278,11 @@ void vTaskPayload( void *pvParameters )
         case PAYLOAD_NO_POWER:
             if (PP_good) {
                 new_state = PAYLOAD_POWER_GOOD_WAIT;
+            } else {
+                if (gpio_get_pin_dir(PIN_PORT(GPIO_MMC_ENABLE), PIN_NUMBER(GPIO_MMC_ENABLE) == GPIO_DIR_OUTPUT)) {
+                    gpio_set_pin_state(PIN_PORT(GPIO_MMC_ENABLE), PIN_NUMBER(GPIO_MMC_ENABLE), 1);
+                    gpio_set_pin_dir(PIN_PORT(GPIO_MMC_ENABLE), PIN_NUMBER(GPIO_MMC_ENABLE), GPIO_DIR_INPUT);
+                }
             }
             break;
 
@@ -332,6 +338,9 @@ void vTaskPayload( void *pvParameters )
             /* Wait until power goes down to restart the cycle */
             if (PP_good == 0 && DCDC_good == 0) {
                 new_state = PAYLOAD_NO_POWER;
+            } else {
+                gpio_set_pin_dir(PIN_PORT(GPIO_MMC_ENABLE), PIN_NUMBER(GPIO_MMC_ENABLE), GPIO_DIR_OUTPUT);
+                gpio_set_pin_state(PIN_PORT(GPIO_MMC_ENABLE), PIN_NUMBER(GPIO_MMC_ENABLE), 0);
             }
             break;
 
@@ -354,6 +363,25 @@ uint32_t hpm_page_addr;
 
 uint8_t payload_hpm_prepare_comp_pages( uint16_t pages )
 {
+    unsigned pages_per_sector = 1024;
+    unsigned max_sectors = 64;
+    if (pages != UINT16_MAX) {
+        /* If not going for bulk erase */
+        /* Check flash id */
+        uint8_t flash_id[3];
+        flash_read_id(flash_id, sizeof(flash_id));
+        uint32_t full_id = (flash_id[0] << 16)|(flash_id[1] << 8)|(flash_id[2]);
+        if (FLASH_ID_MT25QL256 == full_id) {
+            pages_per_sector = 256;
+            max_sectors = 512;
+        } else if (FLASH_ID_M25P128 == full_id) {
+            pages_per_sector = 1024;
+            max_sectors = 64;
+        } else {
+            /* Unknown flash id */
+            return IPMI_CC_UNSPECIFIED_ERROR;
+        }
+    }
     /* Initialize variables */
     if (hpm_page != NULL) {
         vPortFree(hpm_page);
@@ -377,13 +405,20 @@ uint8_t payload_hpm_prepare_comp_pages( uint16_t pages )
     gpio_set_pin_state( PIN_PORT(GPIO_FPGA_PROGRAM_B), PIN_NUMBER(GPIO_FPGA_PROGRAM_B), GPIO_LEVEL_HIGH );
     gpio_set_pin_state( PIN_PORT(GPIO_FPGA_PROGRAM_B), PIN_NUMBER(GPIO_FPGA_PROGRAM_B), GPIO_LEVEL_LOW );
 
-    if (pages == UINT16_MAX) {
+    if (pages == UINT16_MAX || pages/pages_per_sector >= max_sectors) {
         /* Erase FLASH */
         flash_bulk_erase();
     } else {
-        for (unsigned sector = 0; sector <= pages/1024; ++sector) {
-            /* A sector is 1024 pages, a page is 256 bytes, 2**18 in bytes per sector */
-            flash_sector_erase(sector << 18);
+        unsigned flash_busy_polls;
+        for (unsigned sector = 0; sector <= pages/pages_per_sector; ++sector) {
+            flash_busy_polls = 0;
+            while (is_flash_busy()) {
+                if (++flash_busy_polls > FLASH_BUSY_MAX_POLLS) {
+                    return IPMI_CC_TIMEOUT;
+                }
+                vTaskDelay(FLASH_BUSY_POLL_PERIOD_MS/portTICK_PERIOD_MS);
+            }
+            flash_sector_erase(sector*pages_per_sector << 8);
         }
     }
 

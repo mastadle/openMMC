@@ -1011,6 +1011,61 @@ const SDR_type_01h_t SDR_MAX6642_FPGA = {
 };
 #endif
 
+#ifdef MODULE_MCP9808
+const SDR_type_01h_t SDR_MCP9808_FMC1 = {
+    .hdr.recID_LSB = 0x00, /* Filled by sdr_insert_entry() */
+    .hdr.recID_MSB = 0x00,
+    .hdr.SDRversion = 0x51,
+    .hdr.rectype = TYPE_01,
+    .hdr.reclength = sizeof(SDR_type_01h_t) - sizeof(SDR_entry_hdr_t),
+
+    .ownerID = 0x00, /* i2c address, -> SDR_Init */
+    .ownerLUN = 0x00, /* sensor owner LUN */
+    .sensornum = 0x00, /* Filled by sdr_insert_entry() */
+
+    /* record body bytes */
+    .entityID = 0xC1, /* entity id: AMC Module */
+    .entityinstance = 0x00, /* entity instance -> SDR_Init */
+    .sensorinit = 0x7F, /* init: event generation + scanning enabled */
+    .sensorcap = 0x56, /* capabilities: auto re-arm,*/
+    .sensortype = SENSOR_TYPE_TEMPERATURE, /* sensor type */
+    .event_reading_type = 0x01, /* sensor reading*/
+    .assertion_event_mask = 0x7A95, /* assertion event mask (All upper going-high and lower going-low events) */
+    .deassertion_event_mask = 0x7A95, /* deassertion event mask (All upper going-high and lower going-low events) */
+    .readable_threshold_mask = 0x3F, /* LSB: readable Threshold mask: all thresholds are readable:  */
+    .settable_threshold_mask = 0x00, /* MSB: setable Threshold mask: none of the thresholds are setable: */
+    .sensor_units_1 = 0x00, /* sensor units 1 :*/
+    .sensor_units_2 = 0x01, /* sensor units 2 :*/
+    .sensor_units_3 = 0x00, /* sensor units 3 :*/
+    .linearization = 0x00, /* Linearization */
+    .M = 5, /* M */
+    .M_tol = 0x00, /* M - Tolerance */
+    .B = 0x00, /* B */
+    .B_accuracy = 0x00, /* B - Accuracy */
+    .acc_exp_sensor_dir = 0x00, /* Sensor direction */
+    .Rexp_Bexp = 0xF0, /* R-Exp , B-Exp */
+    .analog_flags = 0x03, /* Analogue characteristics flags */
+    .nominal_reading = (20 << 1), /* Nominal reading */
+    .normal_max = (50 << 1), /* Normal maximum */
+    .normal_min = (10 << 1), /* Normal minimum */
+    .sensor_max_reading = 0xFF, /* Sensor Maximum reading */
+    .sensor_min_reading = 0x00, /* Sensor Minimum reading */
+    .upper_nonrecover_thr = (80 << 1), /* Upper non-recoverable Threshold */
+    .upper_critical_thr = (75 << 1), /* Upper critical Threshold */
+    .upper_noncritical_thr = (65 << 1), /* Upper non critical Threshold */
+    .lower_nonrecover_thr = (0 << 1), /* Lower non-recoverable Threshold */
+    .lower_critical_thr = (5 << 1), /* Lower critical Threshold */
+    .lower_noncritical_thr = (10 << 1), /* Lower non-critical Threshold */
+    .pos_thr_hysteresis = 2, /* positive going Threshold hysteresis value */
+    .neg_thr_hysteresis = 2, /* negative going Threshold hysteresis value */
+    .reserved1 = 0x00, /* reserved */
+    .reserved2 = 0x00, /* reserved */
+    .OEM = 0x00, /* OEM reserved */
+    .IDtypelen = 0xc0 | STR_SIZE("TEMP FMC1"), /* 8 bit ASCII, number of bytes */
+    .IDstring = "TEMP FMC1" /*  sensor string */
+};
+#endif
+
 void amc_sdr_init( void )
 {
     /* INA220 sensors */
@@ -1048,6 +1103,9 @@ void amc_sdr_init( void )
     sdr_insert_entry( TYPE_01, (void *) &SDR_LM75_ADN4604, &vTaskLM75_Handle, 0, CHIP_ID_LM75AIM_1 );
     sdr_insert_entry( TYPE_01, (void *) &SDR_LM75_DCDC, &vTaskLM75_Handle, 0, CHIP_ID_LM75AIM_2 );
     sdr_insert_entry( TYPE_01, (void *) &SDR_LM75_RAM, &vTaskLM75_Handle, 0, CHIP_ID_LM75AIM_3 );
+#endif
+#ifdef MODULE_MCP9808
+    sdr_insert_entry( TYPE_01, (void *) &$SDR_MCP9808_FMC1, &vTaskMCP9808_Handle, 0, CHIP_ID_FMC1_MCP9808 );
 #endif
 #ifdef MODULE_HOTSWAP
     /* Hotswap Sensor */

@@ -31,6 +31,7 @@
 #include "port.h"
 #include "ipmi.h"
 #include "portable.h"
+#include "portmacro.h"
 #ifdef MODULE_PAYLOAD
 #include "payload.h"
 #endif
@@ -43,10 +44,13 @@
 #include "GitSHA1.h"
 #include "i2c_mapping.h"
 #include "flash_spi.h"
+#include "sdr.h"
+#include "ina220.h"
 
 /* C Standard includes */
 #include <stdlib.h>
 #include <ctype.h>
+#include <inttypes.h>
 
 #define MAX_GPIO_NAME_LENGTH 20
 static BaseType_t GpioReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
@@ -147,14 +151,17 @@ static BaseType_t GpioWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
 {
     char name[MAX_GPIO_NAME_LENGTH];
     name[0] = '\0';
-    uint8_t value;
     BaseType_t param_1_length, param_2_length;
 
     // Get GPIO value
-    value = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &param_2_length));
+    uint8_t value = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &param_2_length));
 
     // Get GPIO name
-    strncat(name, FreeRTOS_CLIGetParameter(pcCommandString, 1, &param_1_length), MAX_GPIO_NAME_LENGTH-1);
+    const char * param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &param_1_length);
+    if (param_1_length >= MAX_GPIO_NAME_LENGTH-1) {
+        param_1_length = MAX_GPIO_NAME_LENGTH-1;
+    }
+    strncat(name, param, param_1_length);
 
     // Convert GPIO name to lower-case
     for (int i = 0; name[i]; i++) {
@@ -304,7 +311,6 @@ static BaseType_t I2cWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, c
     return pdFALSE;
 }
 
-#define FLASH_BUSY_TIMEOUT (256*8)
 unsigned flash_number_of_pages = 0;
 uint8_t flash_idx = 0;
 static BaseType_t FlashInitCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
@@ -314,10 +320,22 @@ static BaseType_t FlashInitCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
     if (flash_number_of_pages == 0) {
         flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
         flash_number_of_pages = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength));
-        gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
+        gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx & 0x1);
+        /* Wait a millisecond just in case */
+        vTaskDelay(1 / portTICK_PERIOD_MS);
         uint8_t status = payload_hpm_prepare_comp_pages(flash_number_of_pages);
         if (status == IPMI_CC_OUT_OF_SPACE) {
             strncat(pcWriteBuffer, "MMC is out of memory. Abort.", xWriteBufferLen);
+            return pdFALSE;
+        } else if (status == IPMI_CC_TIMEOUT) {
+            snprintf(pcWriteBuffer, xWriteBufferLen, "timeout while waiting for flash. Flash status: 0x%02x", flash_read_status_reg());
+            return pdFALSE;
+        } else if (status == IPMI_CC_UNSPECIFIED_ERROR) {
+            /* Check flash id */
+            uint8_t flash_id[3];
+            flash_read_id(flash_id, sizeof(flash_id));
+            uint32_t full_id = (flash_id[0] << 16)|(flash_id[1] << 8)|(flash_id[2]);
+            snprintf(pcWriteBuffer, xWriteBufferLen, "Unknown flash id: 0x%06" PRIx32, full_id);
             return pdFALSE;
         }
         strncat(pcWriteBuffer, "Initialising flash write", xWriteBufferLen);
@@ -343,10 +361,11 @@ static BaseType_t FlashUploadBlockCommand(char *pcWriteBuffer, size_t xWriteBuff
     uart_send(UART_DEBUG, block, PAYLOAD_HPM_PAGE_SIZE);
     unsigned number_of_checks = 0;
     while ( is_flash_busy() ) {
-        if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
+        if( ++number_of_checks > FLASH_BUSY_MAX_POLLS ) {
             snprintf(pcWriteBuffer, xWriteBufferLen, "timeout while waiting for flash. Flash status: 0x%02x", flash_read_status_reg());
             return pdFALSE;
         }
+        vTaskDelay(FLASH_BUSY_POLL_PERIOD_MS / portTICK_PERIOD_MS);
     }
     payload_hpm_upload_block_repeat(repeat, block, PAYLOAD_HPM_PAGE_SIZE);
     vPortFree(block);
@@ -360,10 +379,11 @@ static BaseType_t FlashFinaliseCommand(char *pcWriteBuffer, size_t xWriteBufferL
     pcWriteBuffer[0] = '\0';
     unsigned number_of_checks = 0;
     while ( is_flash_busy() ) {
-        if( ++number_of_checks >= FLASH_BUSY_TIMEOUT ) {
+        if( ++number_of_checks > FLASH_BUSY_MAX_POLLS ) {
             snprintf(pcWriteBuffer, xWriteBufferLen, "timeout while waiting for flash. Flash status: 0x%02x", flash_read_status_reg());
             return pdFALSE;
         }
+        vTaskDelay(FLASH_BUSY_POLL_PERIOD_MS / portTICK_PERIOD_MS);
     }
     if (flash_number_of_pages > 0) {
         snprintf(pcWriteBuffer, xWriteBufferLen, "Finalising incomplete flash. Missing %d pages.", flash_number_of_pages);
@@ -383,7 +403,8 @@ static BaseType_t FlashActivateFirmwareCommand(char *pcWriteBuffer, size_t xWrit
     pcWriteBuffer[0] = '\0';
     BaseType_t lParameterStringLength;
     flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
-    gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
+    gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx & 0x1);
+    vTaskDelay(1 / portTICK_PERIOD_MS);
     payload_hpm_activate_firmware();
     return pdFALSE;
 }
@@ -393,7 +414,14 @@ static BaseType_t FlashReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
     pcWriteBuffer[0] = '\0';
     BaseType_t lParameterStringLength;
     flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
-    gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx > 0);
+    gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx & 0x1);
+    vTaskDelay(1 / portTICK_PERIOD_MS);
+    int n_chars = snprintf(pcWriteBuffer, xWriteBufferLen, "Set flash cs mux to %d, ", flash_idx);
+    uint8_t flash_id[3];
+    flash_read_id(flash_id, sizeof(flash_id));
+    uint32_t full_id = (flash_id[0] << 16)|(flash_id[1] << 8)|(flash_id[2]);
+
+    n_chars += snprintf(pcWriteBuffer + n_chars, xWriteBufferLen - n_chars, "SPI flash id: 0x%06" PRIx32, full_id);
     int page_index = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength));
     uint8_t block[PAYLOAD_HPM_PAGE_SIZE];
     flash_fast_read_data(sizeof(block)*page_index, block, sizeof(block));
@@ -405,6 +433,30 @@ static BaseType_t FPGAResetCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
 {
     pcWriteBuffer[0] = '\0';
     payload_send_message(FRU_AMC, PAYLOAD_MESSAGE_REBOOT);
+    return pdFALSE;
+}
+
+static BaseType_t PrintVoltagesAndTemperatures(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+    pcWriteBuffer[0] = '\0';
+    for (sensor_t * sensor = sdr_head; sensor != NULL; sensor = sensor->next) {
+        if ( sensor->sdr_type != TYPE_01 ) {
+            continue;
+        }
+
+        SDR_type_01h_t * sdr_entry = (SDR_type_01h_t *) sensor->sdr;
+        if ( sdr_entry->sensortype == SENSOR_TYPE_TEMPERATURE) {
+            if (strcmp(sdr_entry->IDstring, "TEMP FPGA") == 0) {
+                printf("Sensor %s : %d °C\r\n", sdr_entry->IDstring, sensor->readout_value );
+            } else {
+                printf("Sensor %s : %d.%d °C\r\n", sdr_entry->IDstring, sensor->readout_value >> 1, 5*(sensor->readout_value & 0x1));
+            }
+        } else if (sdr_entry->sensortype == SENSOR_TYPE_VOLTAGE) {
+            printf("Sensor %s : %d mV\r\n", sdr_entry->IDstring, sensor->readout_value << 6 );
+        } else if (sdr_entry->sensortype == SENSOR_TYPE_CURRENT) {
+            printf("Sensor %s : %d mA\r\n", sdr_entry->IDstring, sensor->readout_value );
+        }
+    }
     return pdFALSE;
 }
 
@@ -499,6 +551,12 @@ static const CLI_Command_Definition_t FPGAResetCommandDefinition = {
     0
 };
 
+static const CLI_Command_Definition_t PrintSensorReadoutCommandDefinition = {
+    "print_sensor_readout",
+    "\r\nprint_sensor_readout\r\n Print voltages and temperatures of all sensors\r\n",
+    PrintVoltagesAndTemperatures,
+    0
+};
 /**
  * @brief Registers all the defined CLI commands.
  */
@@ -524,4 +582,5 @@ void RegisterCLICommands(void)
     FreeRTOS_CLIRegisterCommand(&FlashActivateFirmwareCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&FlashReadCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&FPGAResetCommandDefinition);
+    FreeRTOS_CLIRegisterCommand(&PrintSensorReadoutCommandDefinition);
 }
