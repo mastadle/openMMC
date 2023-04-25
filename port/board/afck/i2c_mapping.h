@@ -6,6 +6,7 @@
 #define I2CMODE_POOLING         1
 #define I2CMODE_INTERRUPT       0
 #define SPEED_100KHZ            100000
+#define SPEED_400KHZ            400000
 
 // BUS_ID
 // 0 - FMC1

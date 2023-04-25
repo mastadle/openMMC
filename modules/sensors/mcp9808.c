@@ -81,7 +81,8 @@ void vTaskMCP9808( void* Parameters )
 
                 /* Update the temperature reading */
                 if (xI2CMasterWriteRead( i2c_interf, i2c_addr, POINTER_AMBIENT_TEMP, &temp[0], 2) == 2) {
-                    converted_temp = (((temp[0]&0x1f) << 8) | (temp[1]));
+                    /* Discard lower 3 bits to get .5 C precision */
+                    converted_temp = (((temp[0]&0x1f) << 5) | (temp[1]>>3));
                     temp_sensor->readout_value = converted_temp;
                 }
                 /* Check for threshold events */

@@ -25,6 +25,7 @@
  * @brief SSP driver for LPC17xx
  */
 
+#include "lpc17_ssp.h"
 #include "port.h"
 #include "ssp_17xx_40xx.h"
 #include "string.h"
@@ -115,6 +116,12 @@ void ssp_init( uint8_t id, uint32_t bitrate, uint8_t frame_sz, bool master_mode,
         NVIC_EnableIRQ( ssp_cfg[id].irq );
     }
 
+}
+
+void ssp_ssel_init( void ) {
+    for ( int i = 0; i < MAX_SSP_INTERFACES; ++i) {
+        ssp_ssel_control(i, DEASSERT);
+    }
 }
 
 uint8_t *tx_ssp;

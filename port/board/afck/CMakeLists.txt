@@ -24,6 +24,7 @@ set(TARGET_MODULES
   "MAX6642"
   "INA220_VOLTAGE"
   "INA220_CURRENT"
+  "MCP9808"
   "HPM"
   # "RTM" # We don't have a rear transition module yet
   "UART_DEBUG"

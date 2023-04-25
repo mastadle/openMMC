@@ -352,7 +352,8 @@ static BaseType_t FlashUploadBlockCommand(char *pcWriteBuffer, size_t xWriteBuff
 {
     pcWriteBuffer[0] = '\0';
     BaseType_t lParameterStringLength;
-    bool repeat = strcmp("r", FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
+    const char * arg = FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength);
+    bool repeat = arg != NULL && arg[0] == 'r';
     if (repeat) {
         ++flash_number_of_pages;
     }
@@ -415,17 +416,36 @@ static BaseType_t FlashReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
     BaseType_t lParameterStringLength;
     flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
     gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx & 0x1);
-    vTaskDelay(1 / portTICK_PERIOD_MS);
+    int page_index = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength));
+    int wait_for_flash = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 3, &lParameterStringLength));
+    uint8_t block[PAYLOAD_HPM_PAGE_SIZE];
+    if (wait_for_flash) {
+        unsigned number_of_checks = 0;
+        while ( is_flash_busy() ) {
+            if( ++number_of_checks > FLASH_BUSY_MAX_POLLS ) {
+                snprintf(pcWriteBuffer, xWriteBufferLen, "timeout while waiting for flash. Flash status: 0x%02x", flash_read_status_reg());
+                return pdFALSE;
+            }
+            vTaskDelay(FLASH_BUSY_POLL_PERIOD_MS / portTICK_PERIOD_MS);
+        }
+    }
+    flash_fast_read_data(sizeof(block)*page_index, block, sizeof(block));
+    uart_send(UART_DEBUG, block, PAYLOAD_HPM_PAGE_SIZE);
+    return pdFALSE;
+}
+
+static BaseType_t FlashReadIdCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+    pcWriteBuffer[0] = '\0';
+    BaseType_t lParameterStringLength;
+    flash_idx = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength));
+    gpio_set_pin_state(PIN_PORT(GPIO_FLASH_CS_MUX), PIN_NUMBER(GPIO_FLASH_CS_MUX), flash_idx & 0x1);
     int n_chars = snprintf(pcWriteBuffer, xWriteBufferLen, "Set flash cs mux to %d, ", flash_idx);
     uint8_t flash_id[3];
     flash_read_id(flash_id, sizeof(flash_id));
     uint32_t full_id = (flash_id[0] << 16)|(flash_id[1] << 8)|(flash_id[2]);
 
     n_chars += snprintf(pcWriteBuffer + n_chars, xWriteBufferLen - n_chars, "SPI flash id: 0x%06" PRIx32, full_id);
-    int page_index = atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength));
-    uint8_t block[PAYLOAD_HPM_PAGE_SIZE];
-    flash_fast_read_data(sizeof(block)*page_index, block, sizeof(block));
-    uart_send(UART_DEBUG, block, PAYLOAD_HPM_PAGE_SIZE);
     return pdFALSE;
 }
 
@@ -452,9 +472,11 @@ static BaseType_t PrintVoltagesAndTemperatures(char *pcWriteBuffer, size_t xWrit
                 printf("Sensor %s : %d.%d °C\r\n", sdr_entry->IDstring, sensor->readout_value >> 1, 5*(sensor->readout_value & 0x1));
             }
         } else if (sdr_entry->sensortype == SENSOR_TYPE_VOLTAGE) {
+            /* Undo truncation to 1 byte and take into account that 1 LSB is 4 mV */
             printf("Sensor %s : %d mV\r\n", sdr_entry->IDstring, sensor->readout_value << 6 );
         } else if (sdr_entry->sensortype == SENSOR_TYPE_CURRENT) {
-            printf("Sensor %s : %d mA\r\n", sdr_entry->IDstring, sensor->readout_value );
+            /* Undo truncation and print signed */
+            printf("Sensor %s : %d mA\r\n", sdr_entry->IDstring, (int16_t) (sensor->readout_value << 5));
         }
     }
     return pdFALSE;
@@ -539,9 +561,16 @@ static const CLI_Command_Definition_t FlashActivateFirmwareCommandDefinition = {
 
 static const CLI_Command_Definition_t FlashReadCommandDefinition = {
     "flash_read",
-    "\r\nflash_read <flash index> <page index>:\r\n Read one block from SPI flash and print it\r\n",
+    "\r\nflash_read <flash index> <page index> <wait for flash>:\r\n Read one block from SPI\r\n",
     FlashReadCommand,
-    2
+    3
+};
+
+static const CLI_Command_Definition_t FlashReadIdCommandDefinition = {
+    "flash_read_id",
+    "\r\nflash_read_id <flash index>:\r\n Read ID of SPI flash\r\n",
+    FlashReadIdCommand,
+    1
 };
 
 static const CLI_Command_Definition_t FPGAResetCommandDefinition = {
@@ -581,6 +610,7 @@ void RegisterCLICommands(void)
     FreeRTOS_CLIRegisterCommand(&FlashFinaliseCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&FlashActivateFirmwareCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&FlashReadCommandDefinition);
+    FreeRTOS_CLIRegisterCommand(&FlashReadIdCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&FPGAResetCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&PrintSensorReadoutCommandDefinition);
 }

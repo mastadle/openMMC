@@ -102,8 +102,8 @@ void payload_init( void );
 #ifdef MODULE_HPM
 
 #define PAYLOAD_HPM_PAGE_SIZE    256
-#define FLASH_BUSY_TIMEOUT_MS 180000
-#define FLASH_BUSY_POLL_PERIOD_MS 500
+#define FLASH_BUSY_TIMEOUT_MS 10000
+#define FLASH_BUSY_POLL_PERIOD_MS 1
 #define FLASH_BUSY_MAX_POLLS (FLASH_BUSY_TIMEOUT_MS / FLASH_BUSY_POLL_PERIOD_MS)
 
 uint8_t payload_hpm_prepare_comp_pages( uint16_t pages );

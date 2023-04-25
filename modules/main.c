@@ -104,6 +104,8 @@ int main( void )
 #ifdef MODULE_FPGA_SPI
     fpga_spi_init();
 #endif
+    /* Make sure all SPI chips are inactive */
+    ssp_ssel_init();
 #ifdef MODULE_RTM
     rtm_manage_init();
 #endif

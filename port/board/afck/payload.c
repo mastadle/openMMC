@@ -363,25 +363,6 @@ uint32_t hpm_page_addr;
 
 uint8_t payload_hpm_prepare_comp_pages( uint16_t pages )
 {
-    unsigned pages_per_sector = 1024;
-    unsigned max_sectors = 64;
-    if (pages != UINT16_MAX) {
-        /* If not going for bulk erase */
-        /* Check flash id */
-        uint8_t flash_id[3];
-        flash_read_id(flash_id, sizeof(flash_id));
-        uint32_t full_id = (flash_id[0] << 16)|(flash_id[1] << 8)|(flash_id[2]);
-        if (FLASH_ID_MT25QL256 == full_id) {
-            pages_per_sector = 256;
-            max_sectors = 512;
-        } else if (FLASH_ID_M25P128 == full_id) {
-            pages_per_sector = 1024;
-            max_sectors = 64;
-        } else {
-            /* Unknown flash id */
-            return IPMI_CC_UNSPECIFIED_ERROR;
-        }
-    }
     /* Initialize variables */
     if (hpm_page != NULL) {
         vPortFree(hpm_page);
@@ -405,7 +386,28 @@ uint8_t payload_hpm_prepare_comp_pages( uint16_t pages )
     gpio_set_pin_state( PIN_PORT(GPIO_FPGA_PROGRAM_B), PIN_NUMBER(GPIO_FPGA_PROGRAM_B), GPIO_LEVEL_HIGH );
     gpio_set_pin_state( PIN_PORT(GPIO_FPGA_PROGRAM_B), PIN_NUMBER(GPIO_FPGA_PROGRAM_B), GPIO_LEVEL_LOW );
 
-    if (pages == UINT16_MAX || pages/pages_per_sector >= max_sectors) {
+    unsigned pages_per_sector = 1024;
+    unsigned max_sectors = 64;
+    if (pages != UINT16_MAX) {
+        /* If not going for bulk erase */
+        /* Check flash id */
+        uint8_t flash_id[3];
+        flash_read_id(flash_id, sizeof(flash_id));
+        uint32_t full_id = (flash_id[0] << 16)|(flash_id[1] << 8)|(flash_id[2]);
+        if (FLASH_ID_MT25QL256 == full_id) {
+            pages_per_sector = 256;
+            max_sectors = 512;
+        } else if (FLASH_ID_M25P128 == full_id) {
+            pages_per_sector = 1024;
+            max_sectors = 64;
+        } else {
+            /* Unknown flash id */
+            return IPMI_CC_UNSPECIFIED_ERROR;
+        }
+    }
+
+    /* Bulk erase is faster than sector erase if more than 50 % has to be cleared */
+    if (pages == UINT16_MAX || pages/pages_per_sector >= max_sectors/2) {
         /* Erase FLASH */
         flash_bulk_erase();
     } else {

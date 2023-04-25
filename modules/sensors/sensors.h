@@ -66,4 +66,8 @@
 #include "ina219.h"
 #endif
 
+#ifdef MODULE_MCP9808
+#include "mcp9808.h"
+#endif
+
 #endif

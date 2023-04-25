@@ -77,7 +77,7 @@ void vTaskINA220( void *Parameters )
     for (;;) {
         /* Read all registers from the INA220s */
         for ( i = 0; i < MAX_INA220_COUNT; i++) {
-            ina220_readall( &ina220_data[i] );
+            // ina220_readall( &ina220_data[i] );
 
             ina220_sensor = ina220_data[i].sensor;
             data_ptr = &ina220_data[i];
@@ -88,9 +88,11 @@ void vTaskINA220( void *Parameters )
 
             switch ((GET_SENSOR_TYPE(ina220_sensor))) {
             case SENSOR_TYPE_VOLTAGE:
+                ina220_readvalue(&ina220_data[i], INA220_BUS_VOLTAGE, &ina220_data[i].regs[INA220_BUS_VOLTAGE]);
                 ina220_sensor->readout_value = (data_ptr->regs[INA220_BUS_VOLTAGE] >> data_ptr->config->bus_voltage_shift)/16;
                 break;
             case SENSOR_TYPE_CURRENT:
+                ina220_readvalue(&ina220_data[i], INA220_CURRENT, &ina220_data[i].regs[INA220_CURRENT]);
                 /* Current in mA */
                 ina220_sensor->readout_value = data_ptr->regs[INA220_CURRENT]/32;
                 break;

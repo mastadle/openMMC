@@ -28,6 +28,7 @@
 
 /* Project Includes */
 #include "sdr.h"
+#include "mcp9808.h"
 #include "sensors.h"
 #include "ipmi.h"
 #include "fpga_spi.h"
@@ -101,6 +102,9 @@ void sensor_init( void )
 #endif
 #ifdef MODULE_LM75
     LM75_init();
+#endif
+#ifdef MODULE_MCP9808
+    MCP9808_init();
 #endif
 #ifdef MODULE_MAX6642
     MAX6642_init();
