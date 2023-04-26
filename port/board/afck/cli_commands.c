@@ -53,6 +53,9 @@
 #include <inttypes.h>
 
 #define MAX_GPIO_NAME_LENGTH 20
+const char cursor_save[]    = "\e[s";     // Save cursor position
+const char cursor_restore[] = "\e[u";     // Move cursor to saved position
+
 static BaseType_t GpioReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
     char name[MAX_GPIO_NAME_LENGTH];
@@ -259,11 +262,9 @@ static BaseType_t I2cReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, co
     }
 
     if (received_len != read_len) {
-        strcpy(pcWriteBuffer, "ERROR, try again\r\n");
+        strcpy(pcWriteBuffer, "ERROR, try again");
     }
 
-    pcWriteBuffer += 2;
-    xWriteBufferLen -= 2;
     for (uint8_t i = 0; i < received_len; i++) {
         snprintf(pcWriteBuffer, xWriteBufferLen, "0x%02x ", read_data[i]);
         pcWriteBuffer += 5;
@@ -459,26 +460,57 @@ static BaseType_t FPGAResetCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
 static BaseType_t PrintVoltagesAndTemperatures(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
     pcWriteBuffer[0] = '\0';
-    for (sensor_t * sensor = sdr_head; sensor != NULL; sensor = sensor->next) {
-        if ( sensor->sdr_type != TYPE_01 ) {
-            continue;
-        }
-
-        SDR_type_01h_t * sdr_entry = (SDR_type_01h_t *) sensor->sdr;
-        if ( sdr_entry->sensortype == SENSOR_TYPE_TEMPERATURE) {
-            if (strcmp(sdr_entry->IDstring, "TEMP FPGA") == 0) {
-                printf("Sensor %s : %d °C\r\n", sdr_entry->IDstring, sensor->readout_value );
-            } else {
-                printf("Sensor %s : %d.%d °C\r\n", sdr_entry->IDstring, sensor->readout_value >> 1, 5*(sensor->readout_value & 0x1));
+    BaseType_t lParameterStringLength;
+    bool repeat = FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength);
+    if (repeat) {
+        unsigned lines = 0;
+        for (sensor_t * sensor = sdr_head; sensor != NULL; sensor = sensor->next) {
+            if ( sensor->sdr_type != TYPE_01 ) {
+                continue;
             }
-        } else if (sdr_entry->sensortype == SENSOR_TYPE_VOLTAGE) {
-            /* Undo truncation to 1 byte and take into account that 1 LSB is 4 mV */
-            printf("Sensor %s : %d mV\r\n", sdr_entry->IDstring, sensor->readout_value << 6 );
-        } else if (sdr_entry->sensortype == SENSOR_TYPE_CURRENT) {
-            /* Undo truncation and print signed */
-            printf("Sensor %s : %d mA\r\n", sdr_entry->IDstring, (int16_t) (sensor->readout_value << 5));
+
+            SDR_type_01h_t * sdr_entry = (SDR_type_01h_t *) sensor->sdr;
+            lines += (sdr_entry->sensortype == SENSOR_TYPE_TEMPERATURE ||
+                    sdr_entry->sensortype == SENSOR_TYPE_VOLTAGE ||
+                    sdr_entry->sensortype == SENSOR_TYPE_CURRENT);
+            uart_send(UART_DEBUG, "\r\n", 2);
         }
+        /* Move cursor to the previous position */
+        printf("\e[%dA", lines);
+        uart_send(UART_DEBUG, cursor_save, sizeof(cursor_save)-1);
     }
+    do {
+        for (sensor_t * sensor = sdr_head; sensor != NULL; sensor = sensor->next) {
+            if ( sensor->sdr_type != TYPE_01 ) {
+                continue;
+            }
+
+            SDR_type_01h_t * sdr_entry = (SDR_type_01h_t *) sensor->sdr;
+            if ( sdr_entry->sensortype == SENSOR_TYPE_TEMPERATURE) {
+                if (strcmp(sdr_entry->IDstring, "TEMP FPGA") == 0) {
+                    printf("Sensor %s : %2d °C\n", sdr_entry->IDstring, sensor->readout_value );
+                } else {
+                    printf("Sensor %s : %2d.%1d °C\n", sdr_entry->IDstring, sensor->readout_value >> 1, 5*(sensor->readout_value & 0x1));
+                }
+            } else if (sdr_entry->sensortype == SENSOR_TYPE_VOLTAGE) {
+                /* Undo truncation to 1 byte and take into account that 1 LSB is 4 mV */
+                printf("Sensor %s : %5d mV\n", sdr_entry->IDstring, sensor->readout_value << 6 );
+            } else if (sdr_entry->sensortype == SENSOR_TYPE_CURRENT) {
+                /* Undo truncation and print signed */
+                printf("Sensor %s : %4d mA\n", sdr_entry->IDstring, (int16_t) (sensor->readout_value << 5));
+            }
+        }
+        if (repeat) {
+            if (uart_read(UART_DEBUG, pcWriteBuffer, 1)) {
+                repeat = false;
+                /* Discard byte that was read */
+                pcWriteBuffer[0] = '\0';
+            } else {
+                uart_send(UART_DEBUG, cursor_restore, sizeof(cursor_restore)-1);
+                vTaskDelay(100 / portTICK_PERIOD_MS);
+            }
+        }
+    } while (repeat);
     return pdFALSE;
 }
 
@@ -582,9 +614,9 @@ static const CLI_Command_Definition_t FPGAResetCommandDefinition = {
 
 static const CLI_Command_Definition_t PrintSensorReadoutCommandDefinition = {
     "print_sensor_readout",
-    "\r\nprint_sensor_readout\r\n Print voltages and temperatures of all sensors\r\n",
+    "\r\nprint_sensor_readout <continuous>\r\n Print voltages and temperatures of all sensors\r\n",
     PrintVoltagesAndTemperatures,
-    0
+    -1
 };
 /**
  * @brief Registers all the defined CLI commands.

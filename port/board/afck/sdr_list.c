@@ -1158,10 +1158,11 @@ void amc_sdr_init( void )
     sdr_insert_entry( TYPE_01, (void *) &SDR_LM75_RAM, &vTaskLM75_Handle, 0, CHIP_ID_LM75AIM_3 );
 #endif
 #ifdef MODULE_MCP9808
-    if (gpio_read_pin(PIN_PORT(GPIO_FMC1_PRSNT_M2C), PIN_NUMBER(GPIO_FMC1_PRSNT_M2C)) == 1) {
+    /* Active low signal */
+    if (gpio_read_pin(PIN_PORT(GPIO_FMC1_PRSNT_M2C), PIN_NUMBER(GPIO_FMC1_PRSNT_M2C)) == 0) {
         sdr_insert_entry( TYPE_01, (void *) &SDR_MCP9808_FMC1, &vTaskMCP9808_Handle, 0, CHIP_ID_FMC1_MCP9808 );
     }
-    if (gpio_read_pin(PIN_PORT(GPIO_FMC2_PRSNT_M2C), PIN_NUMBER(GPIO_FMC2_PRSNT_M2C)) == 1) {
+    if (gpio_read_pin(PIN_PORT(GPIO_FMC2_PRSNT_M2C), PIN_NUMBER(GPIO_FMC2_PRSNT_M2C)) == 0) {
         sdr_insert_entry( TYPE_01, (void *) &SDR_MCP9808_FMC2, &vTaskMCP9808_Handle, 0, CHIP_ID_FMC2_MCP9808 );
     }
 #endif
