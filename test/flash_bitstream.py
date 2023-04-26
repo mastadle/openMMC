@@ -3,12 +3,15 @@ import argparse
 import serial
 import serial.tools.list_ports
 import sys
+import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--spi_index", help="Target SPI flash index ", default=0, type=int)
-parser.add_argument("-a", "--activate", help="Reprogram the FPGA only. Don't flash", action="store_true")
+parser.add_argument("-a", "--activate", help="Reprogram the FPGA", action="store_true")
 parser.add_argument("-f", "--file", help="bin-file that will get written to the flash")
+parser.add_argument("-o", "--verify_only", help="Verify the flash against file but don't flash", action="store_true")
 parser.add_argument("-c", "--comport", help="COM Port of the MMC")
+parser.add_argument("-v", "--verbose", help="Print debug output", action="store_true")
 
 args = parser.parse_args()
 
@@ -19,6 +22,11 @@ com_busy = False
 UART_BAUDRATE=921600
 
 FLASH_PAGE_SIZE=256
+ENTER="\r"
+
+def debug_print(msg):
+    if args.verbose:
+        print(msg)
 
 if not args.comport:
     print(u'Available serial ports on system:')
@@ -41,73 +49,119 @@ with serial.Serial(port=args.comport,
     if args.file:
         with open(args.file, "rb") as f:
             bin_file_bytes=f.read()
+            # bin_file_bytes=bin_file_bytes[0:10*FLASH_PAGE_SIZE]
 
             # Ceil division
             n_pages = -1*(-len(bin_file_bytes)//FLASH_PAGE_SIZE)
-            # Pad 0s
-            bin_file_bytes += b'\0'*(n_pages*FLASH_PAGE_SIZE-len(bin_file_bytes))
+            # Pad 1s
+            bin_file_bytes += b'\1'*(n_pages*FLASH_PAGE_SIZE-len(bin_file_bytes))
+            if not args.verify_only:
+                com_port.reset_input_buffer()
+                com_port.write(f"flash_init {args.spi_index} {n_pages}{ENTER}".encode("utf8"))
+                debug_print(com_port.read_until())
+                start = time.monotonic()
+                # Expected erase time plus 10 seconds
+                # com_port.timeout = len(bin_file_bytes)//(400*1024) + 10
+                com_port.timeout = None
+                msg = com_port.read_until()
+                stop = time.monotonic()
+                com_port.timeout = 20
+                print(f"Waited for {stop-start:.3} s")
+                print(msg)
+                success_msg = "Initialising flash write"
+                if msg[0:len(success_msg)].decode() != success_msg:
+                    # Memory allocation didn't occur yet, we can abort
+                    sys.exit(3)
 
-            com_port.reset_input_buffer()
-            com_port.write(f"flash_init {args.spi_index} {n_pages}\r\n".encode("utf8"))
-            print(com_port.read_until())
-            msg = com_port.read_until()
-            print(msg)
-            success_msg = "Initialising flash write"
-            if msg[0:len(success_msg)].decode() != success_msg:
-                # Memory allocation didn't occur yet, we can abort
-                sys.exit(3)
-
-            preincrement_page = False
+            repeat_page = False
             timeout_ctr = 0
             try:
                 page = 0
+                uart_page_error_rate = 0
+                spi_page_error_rate = 0
                 while (page < n_pages):
-                    cmd_str = "flash_upload" + (" i" if preincrement_page else " r") + "\r\n"
-                    com_port.write(cmd_str.encode())
-                    print(com_port.read_until())
+                    if page % 100 == 0:
+                        print(f"--- page {page} of {n_pages} ---")
+                        print(f"uart page errors: {uart_page_error_rate}, spi page errors: {spi_page_error_rate}")
+                        uart_page_error_rate = 0
+                        spi_page_error_rate = 0
                     page_bytes = bin_file_bytes[page*FLASH_PAGE_SIZE:(page+1)*FLASH_PAGE_SIZE]
-                    com_port.write(page_bytes)
-                    readback = com_port.read(FLASH_PAGE_SIZE)
-                    if (readback != page_bytes):
-                        preincrement_page = False
-                        if (readback[0:7].decode() == "timeout"):
-                            print(readback)
-                            timeout_ctr += 1
-                        else:
-                            print(page_bytes)
-                            print(readback)
-                            print(com_port.read_until())
-                    else:
-                        print(com_port.read_until())
-                        cmd_str = f"flash_read {args.spi_index} {page}\r\n"
+                    if args.verify_only:
+                        # Don't wait for flash to be ready. Reads can always be used
+                        cmd_str = f"flash_read {args.spi_index} {page} 0{ENTER}"
                         com_port.write(cmd_str.encode())
-                        print(com_port.read_until())
+                        debug_print(com_port.read_until())
                         readback = com_port.read(FLASH_PAGE_SIZE)
                         if (readback != page_bytes):
-                            preincrement_page = False
+                            print(f"--- page {page} of {n_pages} ---")
+                            print(page_bytes)
+                            print(readback)
+                            spi_page_error_rate += 1
+                        debug_print(com_port.read_until())
+                    else:
+                        cmd_str = "flash_upload" + (" r" if repeat_page else " i") + ENTER
+                        com_port.write(cmd_str.encode())
+                        debug_print(com_port.read_until())
+                        com_port.write(page_bytes)
+                        readback = com_port.read(FLASH_PAGE_SIZE)
+                        msg = com_port.read_until()
+                        debug_print(msg)
+                        # More than just newline reply, assume timeout
+                        if (len(msg) > 3):
+                            timeout_ctr += 1
+                            print("Wait for 1 second")
+                            time.sleep(1)
+                            com_port.reset_input_buffer()
                         else:
-                            preincrement_page = True
-                            page += 1
-                        print(com_port.read_until())
+                            if (readback != page_bytes):
+                                repeat_page = True
+                                debug_print(page_bytes)
+                                debug_print(readback)
+                                uart_page_error_rate += 1
+                            else:
+                                # Wait for flash write to finish
+                                cmd_str = f"flash_read {args.spi_index} {page} 1{ENTER}"
+                                com_port.write(cmd_str.encode())
+                                debug_print(com_port.read_until())
+                                readback = com_port.read(FLASH_PAGE_SIZE)
+                                if (readback != page_bytes):
+                                    repeat_page = True
+                                    debug_print(page_bytes)
+                                    debug_print(readback)
+                                    spi_page_error_rate += 1
+                                else:
+                                    repeat_page = False
+                                debug_print(com_port.read_until())
 
                     if timeout_ctr > 100:
+                        print(f"--- Timeout at page {page} of {n_pages} ---")
+                        print(page_bytes)
+                        print(readback)
                         break
+
+                    if not repeat_page:
+                        page += 1
+
             except Exception as e:
                 print(e)
                 exit_code = 1
 
             finally:
-                # make sure to deallocate memory in openMMC
-                com_port.reset_input_buffer()
-                com_port.write(f"flash_final {n_pages}\r\n".encode())
-                print(com_port.read_until())
+                if not args.verify_only:
+                    # make sure to deallocate memory in openMMC
+                    com_port.reset_input_buffer()
+                    com_port.write(f"flash_final {n_pages}{ENTER}".encode())
+                    debug_print(com_port.read_until())
+                    if exit_code == 0:
+                        print(f"Flashing successful")
 
     if args.activate and exit_code == 0:
         com_port.reset_input_buffer()
-        com_port.write(f"flash_activate_firmware {args.spi_index}\r\n".encode())
-        # com_port.write(f"fpga_reset\r\n".encode())
-        print(com_port.read_until())
+        com_port.write(f"flash_activate_firmware {args.spi_index}{ENTER}".encode())
+        # com_port.write(f"fpga_reset{ENTER}".encode())
+        debug_print(com_port.read_until())
         msg = com_port.read_until()
-        print(msg)
+        debug_print(msg)
+        print(f"Activated firmware on flash {args.spi_index}")
 
     sys.exit(exit_code)
