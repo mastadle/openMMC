@@ -237,26 +237,22 @@ static BaseType_t ResetCommand(char *pcWriteBuffer, size_t xWriteBufferLen, cons
 static BaseType_t I2cReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
     BaseType_t param_1_length, param_2_length, param_3_length, param_4_length;
-    uint8_t i2c_interf, i2c_addr, i2c_mux_bus, cmd, read_len, received_len = 0;
+    uint8_t i2c_interf, i2c_addr, i2c_bus_id, cmd, read_len, received_len = 0;
     uint8_t read_data[256] = { 0xFF };
 
     /* Ensure there is always a null terminator after each character written. */
     memset(pcWriteBuffer, 0x00, xWriteBufferLen);
 
-    i2c_mux_bus = atoi(FreeRTOS_CLIGetParameter((const char *) pcCommandString, 1, &param_1_length));
+    i2c_bus_id = atoi(FreeRTOS_CLIGetParameter((const char *) pcCommandString, 1, &param_1_length));
     i2c_addr = atoi(FreeRTOS_CLIGetParameter((const char *) pcCommandString, 2, &param_2_length));
     cmd = atoi(FreeRTOS_CLIGetParameter((const char *) pcCommandString, 3, &param_3_length));
     read_len = atoi(FreeRTOS_CLIGetParameter((const char *) pcCommandString, 4, &param_4_length));
 
-    uint8_t bus_id = 0;
-    for (uint8_t i = 0; i < I2C_BUS_CNT; i++) {
-        if (i2c_bus_map[i].mux_bus == i2c_mux_bus) {
-            bus_id = i;
-            break;
-        }
+    if (i2c_bus_id >= I2C_BUS_CNT) {
+        snprintf(pcWriteBuffer, xWriteBufferLen, "I2C bus id %d is larger than bus count %d", i2c_bus_id, I2C_BUS_CNT);
     }
 
-    if (i2c_take_by_busid(bus_id, &i2c_interf, (TickType_t) 10)) {
+    if (i2c_take_by_busid(i2c_bus_id, &i2c_interf, (TickType_t) 10)) {
         received_len = xI2CMasterWriteRead(i2c_interf, i2c_addr, cmd, read_data, read_len);
         i2c_give(i2c_interf);
     }
@@ -275,14 +271,14 @@ static BaseType_t I2cReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, co
 
 static BaseType_t I2cWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
-    uint8_t i2c_interf, i2c_addr, i2c_mux_bus, write_len = 0;
+    uint8_t i2c_interf, i2c_addr, i2c_bus_id, write_len = 0;
     uint8_t tx_data[256] = { 0 };
     BaseType_t lParameterStringLength;
 
     /* Ensure there is always a null terminator after each character written. */
     memset(pcWriteBuffer, 0x00, xWriteBufferLen);
 
-    i2c_mux_bus = atoi(FreeRTOS_CLIGetParameter((const char *) pcCommandString, 1, &lParameterStringLength));
+    i2c_bus_id = atoi(FreeRTOS_CLIGetParameter((const char *) pcCommandString, 1, &lParameterStringLength));
     i2c_addr = atoi(FreeRTOS_CLIGetParameter((const char *) pcCommandString, 2, &lParameterStringLength));
     BaseType_t tx_num = 0;
     do {
@@ -291,15 +287,11 @@ static BaseType_t I2cWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, c
         tx_num++;
     } while (lParameterStringLength);
 
-    uint8_t bus_id = 0;
-    for (uint8_t i = 0; i < I2C_BUS_CNT; i++) {
-        if (i2c_bus_map[i].mux_bus == i2c_mux_bus) {
-            bus_id = i;
-            break;
-        }
+    if (i2c_bus_id >= I2C_BUS_CNT) {
+        snprintf(pcWriteBuffer, xWriteBufferLen, "I2C bus id %d is larger than bus count %d", i2c_bus_id, I2C_BUS_CNT);
     }
 
-    if (i2c_take_by_busid(bus_id, &i2c_interf, (TickType_t) 10)) {
+    if (i2c_take_by_busid(i2c_bus_id, &i2c_interf, (TickType_t) 10)) {
         write_len = xI2CMasterWrite(i2c_interf, i2c_addr, tx_data, tx_num - 1);
         i2c_give(i2c_interf);
     }

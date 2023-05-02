@@ -32,7 +32,7 @@
 #define ADN4604_CFG_OUT_4       5       /* FPGA_CCLK */
 #define ADN4604_CFG_OUT_5       8       /* FP2_CLK1 */
 #define ADN4604_CFG_OUT_6       10      /* FP2_CLK2 */
-#define ADN4604_CFG_OUT_7       1       /* LINK01_CLK */
+#define ADN4604_CFG_OUT_7       10      /* LINK01_CLK */
 #define ADN4604_CFG_OUT_8       15      /* PCIE_CLK1 */
 #define ADN4604_CFG_OUT_9       14      /* LINK23_CLK */
 #define ADN4604_CFG_OUT_10      14      /* FIN1_CLK3 */

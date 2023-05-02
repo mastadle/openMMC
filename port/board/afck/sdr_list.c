@@ -40,11 +40,11 @@
 #endif
 #ifdef MODULE_INA220_CURRENT
 #include "ina220.h"
-#define SDR_FMC1_VADJ_CURR_ID  "FMC1 +12V Curr"
-#define SDR_FMC1_12V_CURR_ID   "FMC1 VADJ Curr"
+#define SDR_FMC1_VADJ_CURR_ID  "FMC1 VADJ Curr"
+#define SDR_FMC1_12V_CURR_ID   "FMC1 +12V Curr"
 #define SDR_FMC1_P3V3_CURR_ID  "FMC1 +3.3V Curr"
-#define SDR_FMC2_VADJ_CURR_ID  "FMC2 +12V Curr"
-#define SDR_FMC2_12V_CURR_ID   "FMC2 VADJ Curr"
+#define SDR_FMC2_VADJ_CURR_ID  "FMC2 VADJ Curr"
+#define SDR_FMC2_12V_CURR_ID   "FMC2 +12V Curr"
 #define SDR_FMC2_P3V3_CURR_ID  "FMC2 +3.3V Curr"
 #endif
 

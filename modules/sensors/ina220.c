@@ -199,6 +199,7 @@ void ina220_init( void )
 
         if (i < MAX_INA220_COUNT ) {
             ina220_data[i].sensor = temp_sensor;
+            ina220_data[i].rshunt = 0;
             ina220_config( &ina220_data[i] );
             ina220_calibrate( &ina220_data[i] );
             ina220_data[i].sensor->signed_flag = 0;
