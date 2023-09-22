@@ -22,6 +22,7 @@
 
 /* FreeRTOS Includes */
 #include "FreeRTOS.h"
+#include "lpc17_pincfg.h"
 #include "pin_mapping.h"
 #include "portmacro.h"
 #include "task.h"
@@ -308,6 +309,8 @@ void vTaskPayload( void *pvParameters )
             /* Configure clock switch */
             adn4604_init();
 #endif
+            gpio_set_pin_high(PIN_PORT(GPIO_FMC1_PG_C2M), PIN_NUMBER(GPIO_FMC1_PG_C2M));
+            gpio_set_pin_high(PIN_PORT(GPIO_FMC2_PG_C2M), PIN_NUMBER(GPIO_FMC2_PG_C2M));
             new_state = PAYLOAD_FPGA_ON;
             break;
 
@@ -320,6 +323,8 @@ void vTaskPayload( void *pvParameters )
             break;
 
         case PAYLOAD_SWITCHING_OFF:
+            gpio_set_pin_low(PIN_PORT(GPIO_FMC1_PG_C2M), PIN_NUMBER(GPIO_FMC1_PG_C2M));
+            gpio_set_pin_low(PIN_PORT(GPIO_FMC2_PG_C2M), PIN_NUMBER(GPIO_FMC2_PG_C2M));
             setDC_DC_ConvertersON( false );
 
             /* Respond to quiesce event if any */

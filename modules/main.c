@@ -26,6 +26,7 @@
 
 /* Project includes */
 #include "GitSHA1.h"
+#include "board_ipmb.h"
 #include "port.h"
 #include "led.h"
 #include "pin_cfg.h"
@@ -56,6 +57,7 @@
 
 bool bench_test = BENCH_TEST;
 uint8_t ipmb_addr = 0xFF;
+uint8_t slot_index = 0;
 
 /*-----------------------------------------------------------*/
 int main( void )
@@ -83,7 +85,8 @@ int main( void )
 
     i2c_init();
 
-    ipmb_addr = get_ipmb_addr( );
+    slot_index = get_slot_index();
+    ipmb_addr = get_ipmb_addr( slot_index );
 
 #ifdef MODULE_FRU
     fru_init(FRU_AMC);

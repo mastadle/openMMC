@@ -145,6 +145,14 @@ typedef enum {
  * @see get_ipmb_addr
  */
 extern uint8_t ipmb_addr;
+/**
+ * @brief AMC IPMB Address
+ *
+ * This variable saves this module slot index through the Geographical Address pins
+ *
+ * @see get_slot_index
+ */
+extern uint8_t slot_index;
 
 #ifdef MODULE_IPMI
 
@@ -329,6 +337,6 @@ ipmb_error ipmb_assert_chksum ( uint8_t * buffer, uint8_t buffer_len );
  *
  * @return 7-bit Slave Address
  */
-uint8_t get_ipmb_addr( void );
+uint8_t get_ipmb_addr( uint8_t slot_index );
 
 #endif

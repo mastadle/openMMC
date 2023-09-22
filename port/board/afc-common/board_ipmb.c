@@ -41,7 +41,20 @@ const unsigned char IPMBL_TABLE[IPMBL_TABLE_SIZE] = {
     0x98, 0x9C, 0x9A, 0xA0, 0xA4, 0x88, 0x9E, 0x86, 0x84,
     0x78, 0x94, 0x7A, 0x96, 0x82, 0x80, 0x7C, 0x7E, 0xA2 };
 
-uint8_t get_ipmb_addr( void )
+uint8_t get_ipmb_addr( uint8_t slot_index ) {
+    if ( slot_index >= IPMBL_TABLE_SIZE ) {
+        return 0;
+    }
+
+    // If all address pins (GA) are unconnected activate bench test (outside uTCA crate)
+    if (IPMBL_TABLE[slot_index] == 0xA2) {
+        bench_test = true;
+    }
+
+    return IPMBL_TABLE[slot_index];
+}
+
+uint8_t get_slot_index( void )
 {
     uint8_t ga0, ga1, ga2;
     uint8_t index;
@@ -90,14 +103,5 @@ uint8_t get_ipmb_addr( void )
     /* Transform the 3-based code in a decimal number */
     index = (9 * ga2) + (3 * ga1) + (1 * ga0);
 
-    if ( index >= IPMBL_TABLE_SIZE ) {
-        return 0;
-    }
-
-    // If all address pins (GA) are unconnected activate bench test (outside uTCA crate)
-    if (IPMBL_TABLE[index] == 0xA2) {
-        bench_test = true;
-    }
-
-    return IPMBL_TABLE[index];
+    return index;
 }
