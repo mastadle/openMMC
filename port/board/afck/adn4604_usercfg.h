@@ -24,6 +24,29 @@
 #else
 #define ADN4604_USERCFG_H_
 
+
+//
+// AFCK ADN4604 Inputs
+//
+//   In | Net Name          | Description
+// -----+-------------------+----------------------------------------
+//   00 | FMC2_CLKIN3_BIDIR |
+//   01 | FMC2_CLK1_M2C     |
+//   02 | FMC2_CLK0_M2C     |
+//   03 | FMC2_CLK2_BIDIR   |
+//   04 | TCLKB_IN          | AMC Connector pins  77 &  78
+//   05 | TCLKA_IN          | AMC Connector pins  74 &  75
+//   06 | TCLKC_IN          | AMC Connector pins 135 & 136
+//   07 | TCLKD_IN          | AMC Connector pins 138 & 139
+//   08 | FCLKA_IN          | AMC Connector pins  80 &  81
+//   09 | FMC1_CLKIN3_BIDIR |
+//   10 | FMC1_CLK1_M2C     |
+//   11 | FMC1_CLK0_M2C     |
+//   12 | FMC1_CLK2_BIDIR   |
+//   13 | WR_PLL_CLK1       |
+//   14 | CLK20_VCXO        | LFVCXO026156 20 MHz Crystal Oscillator
+//   15 | SI57X_CLK         | Si570 Programmable XO / AUX CLK IN (U.FL J5)
+
 /* User configuration defines for ADN4604 Clock switch output config */
 #define ADN4604_CFG_OUT_0       0       /* TCLKD_OUT */
 #define ADN4604_CFG_OUT_1       0       /* TCLKC_OUT */
