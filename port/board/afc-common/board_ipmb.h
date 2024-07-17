@@ -93,7 +93,6 @@
  *
  * @return 7-bit Slave Address
  */
-uint8_t get_ipmb_addr( uint8_t slot_index );
-uint8_t get_slot_index( void );
+uint8_t get_ipmb_addr( void );
 
 #endif /* BOARD_IPMB_H_ */

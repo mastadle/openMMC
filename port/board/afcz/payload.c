@@ -312,7 +312,13 @@ void payload_send_message(uint8_t fru_id, EventBits_t msg)
 
 void payload_init(void)
 {
-    if (!bench_test) {
+    bool standalone_mode = false;
+
+    if (get_ipmb_addr() == IPMB_ADDR_DISCONNECTED) {
+        standalone_mode = true;
+    }
+
+    if (!standalone_mode) {
         /* Wait until ENABLE# signal is asserted ( ENABLE == 0) */
         while ( gpio_read_pin( PIN_PORT(GPIO_MMC_ENABLE), PIN_NUMBER(GPIO_MMC_ENABLE) ) == 1) {};
     }

@@ -59,8 +59,6 @@ if (FRU_WRITE_EEPROM)
   set(FRU_WRITE_EEPROM false CACHE BOOL "Set this flag to enable writing the board ID on the EEPROM" FORCE)
 endif()
 
-set(MODULES_FLAGS "${MODULES_FLAGS} -DBENCH_TEST=true")
-
 #Set the variables in the main scope
 set(TARGET_MODULES ${TARGET_MODULES} PARENT_SCOPE)
 set(MODULES_FLAGS ${MODULES_FLAGS} PARENT_SCOPE)

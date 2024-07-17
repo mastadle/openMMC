@@ -29,19 +29,13 @@
 #ifndef IPMB_H_
 #define IPMB_H_
 
-#include "board_ipmb.h"
-
-#ifdef MODULE_IPMI
 /* FreeRTOS includes */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "semphr.h"
-#endif
+#include "board_ipmb.h"
 
-#include <stdbool.h>
-
-extern bool bench_test;
 
 /**
  * @brief Address out of range of the MicroTCA Carrier's AMC Slot ID
@@ -143,25 +137,6 @@ typedef enum {
 } GA_Pin_state;
 
 /**
- * @brief AMC IPMB Address
- *
- * This variable saves this module's IPMB address read through the Geographical Address pins
- *
- * @see get_ipmb_addr
- */
-extern uint8_t ipmb_addr;
-/**
- * @brief AMC IPMB Address
- *
- * This variable saves this module slot index through the Geographical Address pins
- *
- * @see get_slot_index
- */
-extern uint8_t slot_index;
-
-#ifdef MODULE_IPMI
-
-/**
  * @brief IPMI message struct
  */
 typedef struct ipmi_msg {
@@ -213,6 +188,15 @@ typedef enum ipmb_error {
     ipmb_error_msg_chksum,              /**< Invalid message checksum from incoming message */
     ipmb_error_queue_creation           /**< Client queue couldn't be created. Invalid pointer to handler was given */
 } ipmb_error;
+
+/**
+ * @brief AMC IPMB Address
+ *
+ * This variable saves this module's IPMB address read through the Geographical Address pins
+ *
+ * @see get_ipmb_addr
+ */
+extern uint8_t ipmb_addr;
 
 /* Function Prototypes */
 
@@ -293,7 +277,6 @@ ipmb_error ipmb_register_rxqueue ( QueueHandle_t * queue );
  * @retval ipmb_error_hdr_chksum The final checksum byte is invalid.
  */
 ipmb_error ipmb_assert_chksum ( uint8_t * buffer, uint8_t buffer_len );
-#endif
 
 /**
  * @brief Reads own I2C slave address using GA pins
@@ -342,6 +325,6 @@ ipmb_error ipmb_assert_chksum ( uint8_t * buffer, uint8_t buffer_len );
  *
  * @return 7-bit Slave Address
  */
-uint8_t get_ipmb_addr( uint8_t slot_index );
+uint8_t get_ipmb_addr( void );
 
 #endif
