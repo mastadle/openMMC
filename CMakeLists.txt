@@ -1,5 +1,5 @@
 # Define minimal required version of CMake.
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.0.0)
 
 option(DISABLE_WATCHDOG "Disable watchdog module to aid debugging" OFF)
 
@@ -20,7 +20,7 @@ project(openMMC C CXX ASM)
 
 #Find a toolchain file
 if(NOT CMAKE_TOOLCHAIN_FILE)
-  message(WARNING "${Yellow}No toolchain configuration file specified. Using default option!${ColourReset}")
+  message(NOTICE "No toolchain configuration file specified. Using default option!")
 
   include(${CMAKE_SOURCE_DIR}/toolchain/toolchain-arm-none-eabi.cmake)
 endif()
@@ -92,7 +92,7 @@ endif()
 # Linker flags
 set(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES
-  SUFFIX ".axf"
+  SUFFIX ".elf"
   LINK_FLAGS "-T ${UCONTROLLER_APP_LD_SCRIPT} -Wl,-Map=${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET_CONTROLLER}_app.map"
   )
 
@@ -103,9 +103,23 @@ target_link_libraries(${CMAKE_PROJECT_NAME} FreeRTOS gcc c ${PROJ_LIBS})
 
 ##Generate binary file
 add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
-  COMMAND ${CMAKE_OBJCOPY} -O binary ${CMAKE_PROJECT_NAME}.axf ${CMAKE_PROJECT_NAME}.bin
+  COMMAND ${CMAKE_OBJCOPY} -O binary ${CMAKE_PROJECT_NAME}.elf ${CMAKE_PROJECT_NAME}.bin
   WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-  COMMENT "Converting the AXF output to a binary file"
+  COMMENT "Converting the ELF output to a binary file"
   )
+
+##Generate hpm files if bin2hpm is installed
+
+find_program(BIN2HPM NAMES "bin2hpm")
+if(BIN2HPM)
+  add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+    COMMAND bin2hpm -c 1 -n -m 0x315A -p 0x00 ${CMAKE_PROJECT_NAME}.bin -o ${CMAKE_PROJECT_NAME}.hpm
+    WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+    COMMENT "Creating HPM file from binary"
+  )
+  message(STATUS "bin2hpm found in the $PATH, .hpm files will be generated automatically.")
+else()
+  message(NOTICE "bin2hpm not found in the $PATH, .hpm files will not be generated.")
+endif()
 
 include( ${CMAKE_SOURCE_DIR}/probe/openocd.cmake )
