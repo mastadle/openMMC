@@ -39,9 +39,11 @@ static void hex_str_to_bin(const char* src, uint8_t* dest, size_t len)
     }
 }
 
+#ifdef MODULE_IPMI
 IPMI_HANDLER(ipmi_custom_cmd_get_git_hash, NETFN_CUSTOM, IPMI_CUSTOM_CMD_GET_GIT_HASH, ipmi_msg *req, ipmi_msg *rsp)
 {
     hex_str_to_bin(GIT_SHA1, rsp->data, 20);
     rsp->data_len = 20;
     rsp->completion_code = IPMI_CC_OK;
 }
+#endif
