@@ -112,10 +112,10 @@ static uint8_t xr77129_flash_page_erase(xr77129_data_t * data, uint8_t page)
         uint8_t page_erase_status = 0xFF;
 
         uint8_t page_erase_timeout = 0x20;
-        uint32_t data_address = XR77129_FLASH_PAGE_ERASE;
+        uint8_t data_address = XR77129_FLASH_PAGE_ERASE;
 
         while (page_erase_busy) {
-            xI2CMasterWriteRead(i2c_interf, i2c_addr, data_address, rx, 2);
+            xI2CMasterWriteRead(i2c_interf, i2c_addr, &data_address, sizeof(data_address), rx, 2);
 
             page_erase_busy = rx[1];
             page_erase_status = rx[0];
@@ -172,10 +172,10 @@ static uint8_t xr77129_flash_page_clear(xr77129_data_t * data, uint8_t page)
         uint8_t page_clear_status = 0xFF;
 
         uint8_t page_clear_timeout = 0x20;
-        uint32_t data_address = XR77129_FLASH_PAGE_CLEAR;
+        uint8_t data_address = XR77129_FLASH_PAGE_CLEAR;
 
         while (page_clear_busy) {
-            xI2CMasterWriteRead(i2c_interf, i2c_addr, data_address, rx, 2);
+            xI2CMasterWriteRead(i2c_interf, i2c_addr, &data_address, sizeof(data_address), rx, 2);
 
             page_clear_busy = rx[1];
             page_clear_status = rx[0];
@@ -237,7 +237,7 @@ uint8_t xr77129_flash_verify(xr77129_data_t * data, const uint8_t * flash_data, 
             xI2CMasterWrite(i2c_interf, i2c_addr, tx, 3);
 
             vTaskDelay(20);
-            xI2CMasterWriteRead(i2c_interf, i2c_addr, data_address, rx, 2);
+            xI2CMasterWriteRead(i2c_interf, i2c_addr, &data_address, sizeof(data_address), rx, 2);
 
             if (rx[0] != flash_data[i] || rx[1] != flash_data[i + 1]) {
                 printf("\nDiff for %d | [%d] %d != %d | [%d] %d != %d\r\n", data->chipid, (int) i, rx[0], flash_data[i],
@@ -291,7 +291,7 @@ uint8_t xr77129_flash_read(xr77129_data_t * data, uint16_t address, uint32_t siz
 
             vTaskDelay(10);
 
-            xI2CMasterWriteRead(i2c_interf, i2c_addr, data_address, rx, 2);
+            xI2CMasterWriteRead(i2c_interf, i2c_addr, &data_address, sizeof(data_address), rx, 2);
             printf("[%d] %02X %02X\n", (int) i, rx[0], rx[1]);
         }
         i2c_give(i2c_interf);
@@ -432,7 +432,7 @@ uint8_t xr77129_read_value(xr77129_data_t * data, uint8_t reg_address, uint16_t 
     }
 
     if (i2c_take_by_chipid(data->chipid, &i2c_addr, &i2c_interf, portMAX_DELAY) == pdTRUE) {
-        rx_len = xI2CMasterWriteRead(i2c_interf, i2c_addr, reg_address, val, sizeof(val) / sizeof(val[0]));
+        rx_len = xI2CMasterWriteRead(i2c_interf, i2c_addr, &reg_address, sizeof(reg_address), val, sizeof(val) / sizeof(val[0]));
         i2c_give(i2c_interf);
 
         *read = (val[0] << 8) | (val[1]);
@@ -512,11 +512,12 @@ uint8_t xr77129_runtime_load(xr77129_data_t * exar, runtime_data_t * runtime_dat
         return 0;
     }
 
+    uint8_t data_address = XR77129_GPIO_READ_GPIO;
     if (i2c_take_by_chipid(exar->chipid, &i2c_addr, &i2c_interf, portMAX_DELAY) == pdTRUE) {
 
         // Verify GPIO pin state
         uint8_t rx[2] = { 0xFF, 0XFF };
-        xI2CMasterWriteRead(i2c_interf, i2c_addr, XR77129_GPIO_READ_GPIO, rx, 2);
+        xI2CMasterWriteRead(i2c_interf, i2c_addr, &data_address, sizeof(data_address), rx, 2);
         if ((rx[1] & exar->gpio_mask) != (exar->gpio_default & exar->gpio_mask)) {
             printf("EXAR GPIO verification failed. (%d != %d)\r\n", rx[1] & exar->gpio_mask, exar->gpio_default & exar->gpio_mask);
             return 0;

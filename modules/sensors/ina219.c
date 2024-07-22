@@ -48,6 +48,22 @@ TaskHandle_t vTaskINA219_Handle;
 
 static ina219_data_t ina219_data[MAX_INA219_COUNT];
 
+static Bool ina219_readvalue( ina219_data_t * data, uint8_t reg, uint16_t *read) {
+    uint8_t i2c_interf, i2c_addr;
+    uint8_t val[2] = {0};
+
+    /* Try to gain the I2C bus */
+    if (i2c_take_by_chipid(data->sensor->chipid, &i2c_addr, &i2c_interf, portMAX_DELAY) == pdTRUE) {
+        if (xI2CMasterWriteRead(i2c_interf, i2c_addr, &reg, 1, &val[0], sizeof(val)/sizeof(val[0])) == 2) {
+            *read = (val[0] << 8) | (val[1]);
+        }
+        i2c_give(i2c_interf);
+        return true;
+    }
+
+    return false;
+}
+
 void vTaskINA219(void *Parameters)
 {
     TickType_t xLastWakeTime;
@@ -56,10 +72,6 @@ void vTaskINA219(void *Parameters)
     const TickType_t xFrequency = INA219_UPDATE_RATE / portTICK_PERIOD_MS;
 
     sensor_t * sensor;
-    uint8_t i2c_addr, i2c_interf;
-
-    uint8_t val[2];
-    int16_t readout;
 
     /* Initialise the xLastWakeTime variable with the current time. */
     xLastWakeTime = xTaskGetTickCount();
@@ -69,50 +81,26 @@ void vTaskINA219(void *Parameters)
 
     for (;;) {
 
-        /* Iterate through the SDR Table to find all the INA219 entries */
-        for (sensor = sdr_head; sensor != NULL; sensor = sensor->next) {
+        /* Read all registers from the INA219s */
+        for ( i = 0; i < MAX_INA219_COUNT; i++) {
 
-            if (sensor->task_handle == NULL) {
-                continue;
-            }
+            sensor = ina219_data[i].sensor;
 
-            /* Check if this task should update the selected SDR */
-            if (*(sensor->task_handle) != xTaskGetCurrentTaskHandle()) {
+            if (sensor == NULL) {
                 continue;
             }
 
             switch ((GET_SENSOR_TYPE(sensor))) {
             case SENSOR_TYPE_VOLTAGE:
 
-                /* Try to gain the I2C bus */
-                if (i2c_take_by_chipid(sensor->chipid, &i2c_addr, &i2c_interf, portMAX_DELAY) == pdTRUE) {
-                    if (xI2CMasterWriteRead(i2c_interf, i2c_addr, INA219_BUS_VOLTAGE_REG, &val[0], 2) == 2) {
-                        readout = (val[0] << 8) | (val[1]);
-                    }
-                    i2c_give(i2c_interf);
-                }
-
-                sensor->readout_value = (readout >> 3) / 16;
+                ina219_readvalue(&ina219_data[i], INA219_BUS_VOLTAGE_REG, &ina219_data[i].regs[INA219_BUS_VOLTAGE_REG]);
+                sensor->readout_value = (ina219_data[i].regs[INA219_BUS_VOLTAGE_REG] >> 3) / 16;
 
                 break;
             case SENSOR_TYPE_CURRENT:
 
-                // Find current INA219 settings
-                for (i = 0; i < MAX_INA219_COUNT; i++) {
-                    if (sensor->chipid == ina219_data[i].sensor->chipid){
-                        break;
-                    }
-                }
-
-                /* Try to gain the I2C bus */
-                if (i2c_take_by_chipid(sensor->chipid, &i2c_addr, &i2c_interf, portMAX_DELAY) == pdTRUE) {
-                    if (xI2CMasterWriteRead(i2c_interf, i2c_addr, INA219_CURRENT_REG, &val[0], 2) == 2) {
-                        readout = (val[0] << 8) | (val[1]);
-                    }
-                    i2c_give(i2c_interf);
-                }
-
-                value = (int16_t) (readout * ina219_data[i].current_lsb * 12.5);
+                ina219_readvalue(&ina219_data[i], INA219_CURRENT_REG, &ina219_data[i].regs[INA219_CURRENT_REG]);
+                value = (int16_t) (ina219_data[i].regs[INA219_CURRENT_REG] * ina219_data[i].current_lsb * 12.5);
                 sensor->readout_value = value;
 
                 break;
@@ -124,8 +112,6 @@ void vTaskINA219(void *Parameters)
             /* Check for threshold events */
             sensor_state_check(sensor);
             check_sensor_event(sensor);
-
-            i++;
         }
 
         vTaskDelayUntil(&xLastWakeTime, xFrequency);

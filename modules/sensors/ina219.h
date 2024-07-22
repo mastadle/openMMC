@@ -34,6 +34,7 @@
 #define INA219_H_
 
 #include "FreeRTOS.h"
+#include "ina220.h"
 #include "port.h"
 
 #define MAX_INA219_COUNT        12
@@ -102,6 +103,11 @@
  * @}
  */
 
+/**
+ * @brief INA219 Register Count
+ */
+#define INA219_REGISTERS                6
+
 /* Scale range values */
 #define INA219_16V_SCALE_RANGE          0x00
 #define INA219_32V_SCALE_RANGE          0x01
@@ -163,6 +169,7 @@ typedef struct
     sensor_t * sensor;
     const ina219_config_t * config;
     float current_lsb;
+    uint16_t regs[INA219_REGISTERS];
 } ina219_data_t;
 
 extern TaskHandle_t vTaskINA219_Handle;

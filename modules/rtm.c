@@ -61,7 +61,7 @@ void RTM_Manage( void * Parameters )
     // rtm_disable_payload_power();
 
     for ( ;; ) {
-        vTaskDelay(500);
+        vTaskDelay(pdMS_TO_TICKS(500));
 
         rtm_check_presence( &ps_new_state );
 
@@ -152,8 +152,7 @@ void RTM_Manage( void * Parameters )
         current_evt = xEventGroupGetBits( rtm_payload_evt );
 
         if ( current_evt & PAYLOAD_MESSAGE_QUIESCE ) {
-            if ( rtm_quiesce() ) {
-                rtm_disable_payload_power();
+            if ( rtm_disable_payload_power() ) {
                 /* Quiesced event */
                 printf("[RTM] Quiesced RTM successfully!\n");
                 hotswap_set_mask_bit( HOTSWAP_RTM, HOTSWAP_QUIESCED_MASK );

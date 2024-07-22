@@ -253,7 +253,7 @@ static BaseType_t I2cReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, co
     }
 
     if (i2c_take_by_busid(i2c_bus_id, &i2c_interf, (TickType_t) 10)) {
-        received_len = xI2CMasterWriteRead(i2c_interf, i2c_addr, cmd, read_data, read_len);
+        received_len = xI2CMasterWriteRead(i2c_interf, i2c_addr, &cmd, sizeof(cmd), read_data, read_len);
         i2c_give(i2c_interf);
     }
 

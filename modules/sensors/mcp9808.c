@@ -62,6 +62,8 @@ void vTaskMCP9808( void* Parameters )
     uint8_t temp[2];
     uint16_t converted_temp;
 
+    const uint8_t ambient_temp = POINTER_AMBIENT_TEMP;
+
     for ( ;; ) {
         /* Iterate through the SDR Table to find all the MCP9808 entries */
 
@@ -80,7 +82,7 @@ void vTaskMCP9808( void* Parameters )
             if ( i2c_take_by_chipid( temp_sensor->chipid, &i2c_addr, &i2c_interf, portMAX_DELAY ) == pdTRUE ) {
 
                 /* Update the temperature reading */
-                if (xI2CMasterWriteRead( i2c_interf, i2c_addr, POINTER_AMBIENT_TEMP, &temp[0], 2) == 2) {
+                if (xI2CMasterWriteRead( i2c_interf, i2c_addr, &ambient_temp, sizeof(ambient_temp), &temp[0], 2) == 2) {
                     /* Discard lower 3 bits to get .5 C precision */
                     converted_temp = (((temp[0]&0x1f) << 5) | (temp[1]>>3));
                     temp_sensor->readout_value = converted_temp;
