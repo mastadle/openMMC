@@ -23,6 +23,7 @@
 #include "FreeRTOS.h"
 #include "FreeRTOS_CLI.h"
 #include "cli.h"
+#include "eeprom_24xx02.h"
 #include "pin_mapping.h"
 
 /* Project Includes */
@@ -46,6 +47,9 @@
 #include "flash_spi.h"
 #include "sdr.h"
 #include "ina220.h"
+#include "clock_config.h"
+#include "adn4604_usercfg.h"
+#include "adn4604.h"
 
 /* C Standard includes */
 #include <stdlib.h>
@@ -506,6 +510,52 @@ static BaseType_t PrintVoltagesAndTemperatures(char *pcWriteBuffer, size_t xWrit
     return pdFALSE;
 }
 
+static BaseType_t SetClockConfiguration(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
+{
+    pcWriteBuffer[0] = '\0';
+    BaseType_t lParameterStringLength;
+    const char * new_enable_mask_str = FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength);
+
+    const int n_out = 16;
+    uint16_t current_enable_mask = 0;
+    if (lParameterStringLength > 0) {
+        current_enable_mask = atoi(new_enable_mask_str);
+
+        const char * output_map_str = FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength);
+        for (int i = 0; i < n_out; ++i) {
+            if (i < lParameterStringLength) {
+                clock_config[i] = output_map_str[i] & 0xf;
+            }
+            clock_config[i] = (((current_enable_mask >> i) & 0x1) << 7) | (clock_config[i] &0xf);
+        }
+        bool store = FreeRTOS_CLIGetParameter(pcCommandString, 3, &lParameterStringLength);
+        if (store) {
+            eeprom_24xx02_write(CHIP_ID_RTC_EEPROM, 0x0, clock_config, 16, 10);
+        }
+        adn4604_reset();
+        clock_configuration(clock_config);
+    }
+    uint8_t output_map[n_out];
+    printf("Enabled | Output     | Input      |\r\n");
+    for (int i = 0; i < n_out; ++i) {
+        bool output_enabled = 0x80 & clock_config[i];
+        output_map[i] = clock_config[i] & 0xF;
+        printf("      %1x | %17s | %17s |\r\n", output_enabled, ADN4604_OUTPUT[i], ADN4604_INPUT[output_map[i]]);
+        current_enable_mask |= output_enabled << i;
+    }
+    printf("\r\n");
+    printf("     Current enable mask: 0x%02x\r\n", current_enable_mask);
+    printf("Current clock output map: 0x");
+    for (int i = 0; i < n_out; ++i) {
+        if (output_map[i] < n_out) {
+            printf("%1x", output_map[i]);
+        }
+    }
+    printf("\r\n");
+
+    return pdFALSE;
+}
+
 static const CLI_Command_Definition_t GpioReadCommandDefinition = {
     "gpio_read",
     "\r\ngpio_read <gpio>:\r\n Reads <gpio> value\r\n",
@@ -610,6 +660,13 @@ static const CLI_Command_Definition_t PrintSensorReadoutCommandDefinition = {
     PrintVoltagesAndTemperatures,
     -1
 };
+
+static const CLI_Command_Definition_t SetClockConfigurationDefinition = {
+    "set_clock_configuration",
+    "\r\nset_clock_configuration <enable mask> <output mask>\r\n Set the configuration of the clock crossbar. Omit arguments to display current config.\r\n",
+    SetClockConfiguration,
+    -1
+};
 /**
  * @brief Registers all the defined CLI commands.
  */
@@ -637,4 +694,7 @@ void RegisterCLICommands(void)
     FreeRTOS_CLIRegisterCommand(&FlashReadIdCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&FPGAResetCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&PrintSensorReadoutCommandDefinition);
+
+    // Clock
+    FreeRTOS_CLIRegisterCommand(&SetClockConfigurationDefinition);
 }

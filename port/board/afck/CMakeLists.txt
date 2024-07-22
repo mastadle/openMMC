@@ -12,6 +12,7 @@ set(TARGET_MODULES
   # "FRU" # Don't use filed replaceable unit
   "NO_IPMI"
   "CLI"
+  "CLOCK_CONFIG"
   "PAYLOAD"
   "SDR" # Don't need sensor data repository but sensor_init and sdr_head are required by other modules
   "SCANSTA1101"

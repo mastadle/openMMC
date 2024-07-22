@@ -2,6 +2,7 @@
 
 uint8_t clock_config[16];
 
+#ifdef MODULE_IPMI
 /*
  *  Function to configure the clock switch via ipmi.
  *  The configuration is sent as an array in the data field.
@@ -24,3 +25,4 @@ IPMI_HANDLER(ipmi_custom_cmd_read_clock_config, NETFN_CUSTOM, IPMI_CUSTOM_CMD_RE
     memcpy(rsp->data, clock_config, rsp->data_len);
     rsp->completion_code = IPMI_CC_OK;
 }
+#endif
