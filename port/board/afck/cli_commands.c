@@ -514,27 +514,60 @@ static BaseType_t SetClockConfiguration(char *pcWriteBuffer, size_t xWriteBuffer
 {
     pcWriteBuffer[0] = '\0';
     BaseType_t lParameterStringLength;
-    const char * new_enable_mask_str = FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength);
 
+    // Get and print the enable mask string
+    const char *new_enable_mask_str = FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength);
     const int n_out = 16;
-    uint16_t current_enable_mask = 0;
-    if (lParameterStringLength > 0) {
-        current_enable_mask = atoi(new_enable_mask_str);
+    printf("Received enable mask string: %s\n", new_enable_mask_str);
 
-        const char * output_map_str = FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength);
+    uint16_t current_enable_mask = 0;
+
+    if (lParameterStringLength > 0) {
+        // Parse enable mask
+        current_enable_mask = strtol(new_enable_mask_str, NULL, 0); // Using strtol for hexadecimal parsing
+        printf("Parsed current enable mask: 0x%04x\n", current_enable_mask);
+
+        // Get and print the output map string
+        const char *output_map_str = FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength);
+        printf("Received output map string: %s\n", output_map_str);
+        
+        // Adjust the length if "0x" is present
+        int map_length = (output_map_str[0] == '0' && output_map_str[1] == 'x') ? lParameterStringLength - 2 : lParameterStringLength;
+        printf("Output map string length: %d\n", map_length);
+
+        // Start parsing from the correct position if prefixed by "0x"
+        int start_idx = (output_map_str[0] == '0' && output_map_str[1] == 'x') ? 2 : 0;
+
+        // Iterate over output map and print each step
         for (int i = 0; i < n_out; ++i) {
-            if (i < lParameterStringLength) {
-                clock_config[i] = output_map_str[i] & 0xf;
+            if (i < map_length) {
+                // Convert the character to a number and apply it
+                clock_config[i] = (output_map_str[start_idx + i] >= '0' && output_map_str[start_idx + i] <= '9') ?
+                                  (output_map_str[start_idx + i] - '0') :
+                                  (output_map_str[start_idx + i] - 'A' + 10);
             }
-            clock_config[i] = (((current_enable_mask >> i) & 0x1) << 7) | (clock_config[i] &0xf);
+            clock_config[i] = (((current_enable_mask >> i) & 0x1) << 7) | (clock_config[i] & 0xf);
+            printf("clock_config[%d]: 0x%02x\n", i, clock_config[i]);
         }
-        bool store = FreeRTOS_CLIGetParameter(pcCommandString, 3, &lParameterStringLength);
+
+        // Get and print the store flag
+        const char *store_str = FreeRTOS_CLIGetParameter(pcCommandString, 3, &lParameterStringLength);
+        bool store = (store_str != NULL && atoi(store_str) > 0); // Correctly parsing the store flag
+        printf("Store flag: %d\n", store);
+
+        // Check if store is enabled and write to EEPROM
         if (store) {
+            printf("Writing to EEPROM...\n");
             eeprom_24xx02_write(CHIP_ID_RTC_EEPROM, 0x0, clock_config, 16, 10);
         }
+
+        // Reset and configure
+        printf("Resetting and configuring clock...\n");
         adn4604_reset();
         clock_configuration(clock_config);
     }
+
+    // Prepare and print output map
     uint8_t output_map[n_out];
     printf("Enabled | Output     | Input      |\r\n");
     for (int i = 0; i < n_out; ++i) {
@@ -543,8 +576,10 @@ static BaseType_t SetClockConfiguration(char *pcWriteBuffer, size_t xWriteBuffer
         printf("      %1x | %17s | %17s |\r\n", output_enabled, ADN4604_OUTPUT[i], ADN4604_INPUT[output_map[i]]);
         current_enable_mask |= output_enabled << i;
     }
+
+    // Print the final configuration
     printf("\r\n");
-    printf("     Current enable mask: 0x%02x\r\n", current_enable_mask);
+    printf("     Current enable mask: 0x%04x\r\n", current_enable_mask);
     printf("Current clock output map: 0x");
     for (int i = 0; i < n_out; ++i) {
         if (output_map[i] < n_out) {
