@@ -35,7 +35,7 @@ else()
   message(FATAL_ERROR "${BoldRed}Selected board \"${BOARD}\" is not implemented!${ColourReset}")
 endif()
 
-if(${BOARD} MATCHES "^(afc-)" OR ${BOARD} MATCHES "^(afck)")
+if(${BOARD} MATCHES "^(afc)" OR ${BOARD} MATCHES "^(afc-)" OR ${BOARD} MATCHES "^(afck)")
   add_subdirectory(afc-common)
 endif()
 
