@@ -29,8 +29,8 @@
 /* Project Includes */
 #include "cli_commands.h"
 
-#include "port.h"
 #include "ipmi.h"
+#include "port.h"
 #include "portable.h"
 #include "portmacro.h"
 #ifdef MODULE_PAYLOAD
@@ -39,26 +39,26 @@
 #ifdef MODULE_HOTSWAP
 #include "hotswap.h"
 #endif
-#include "utils.h"
-#include "fru.h"
-#include "led.h"
 #include "GitSHA1.h"
-#include "i2c_mapping.h"
-#include "flash_spi.h"
-#include "sdr.h"
-#include "ina220.h"
-#include "clock_config.h"
-#include "adn4604_usercfg.h"
 #include "adn4604.h"
+#include "adn4604_usercfg.h"
+#include "clock_config.h"
+#include "flash_spi.h"
+#include "fru.h"
+#include "i2c_mapping.h"
+#include "ina220.h"
+#include "led.h"
+#include "utils.h"
 
 /* C Standard includes */
-#include <stdlib.h>
 #include <ctype.h>
 #include <inttypes.h>
+#include <math.h>
+#include <stdlib.h>
 
 #define MAX_GPIO_NAME_LENGTH 20
-const char cursor_save[]    = "\e[s";     // Save cursor position
-const char cursor_restore[] = "\e[u";     // Move cursor to saved position
+const char cursor_save[] = "\e[s";    // Save cursor position
+const char cursor_restore[] = "\e[u"; // Move cursor to saved position
 
 static BaseType_t GpioReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
@@ -208,9 +208,6 @@ static BaseType_t GpioWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
     }
     else if (strcmp(name, "fmc2_pg_c2m") == 0) {
         gpio_set_pin_state(PIN_PORT(GPIO_FMC2_PG_C2M), PIN_NUMBER(GPIO_FMC2_PG_C2M), value & 0x1);
-    }
-    else if (strcmp(name, "tclka_tclkc_sel") == 0) {
-        gpio_set_pin_state(PIN_PORT(GPIO_TCLKA_TCLKC_SEL), PIN_NUMBER(GPIO_TCLKA_TCLKC_SEL), value & 0x1);
     }
 
     else {
@@ -513,84 +510,196 @@ static BaseType_t PrintVoltagesAndTemperatures(char *pcWriteBuffer, size_t xWrit
     return pdFALSE;
 }
 
-static BaseType_t SetClockConfiguration(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
-{
+static BaseType_t clockConfigReadCommand(char *pcWriteBuffer, size_t xWriteBufferLength,
+                                         const char *pcCommandString) {
+    // Initialize the output buffer with an empty string
     pcWriteBuffer[0] = '\0';
-    BaseType_t lParameterStringLength;
 
-    // Get and print the enable mask string
-    const char *new_enable_mask_str = FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength);
-    const int n_out = 16;
-    printf("Received enable mask string: %s\n", new_enable_mask_str);
+    // Define the number of clocks to configure
+    const uint8_t numberOfClocks = 16;
 
-    uint16_t current_enable_mask = 0;
+    // Initialize variables to store the extracted enable mask and output map
+    uint16_t enableMaskValue = 0;
+    uint64_t outputMapValue = 0;
 
-    if (lParameterStringLength > 0) {
-        // Parse enable mask
-        current_enable_mask = strtol(new_enable_mask_str, NULL, 0); // Using strtol for hexadecimal parsing
-        printf("Parsed current enable mask: 0x%04x\n", current_enable_mask);
+    // Print the clock configuration table header
+    printf("| Output          | Enabled | Input                   |\r\n");
+    printf("|-----------------|---------|-------------------------|\r\n");
 
-        // Get and print the output map string
-        const char *output_map_str = FreeRTOS_CLIGetParameter(pcCommandString, 2, &lParameterStringLength);
-        printf("Received output map string: %s\n", output_map_str);
-        
-        // Adjust the length if "0x" is present
-        int map_length = (output_map_str[0] == '0' && output_map_str[1] == 'x') ? lParameterStringLength - 2 : lParameterStringLength;
-        printf("Output map string length: %d\n", map_length);
+    // Iterate over each clock output to read the current configuration
+    for (uint8_t i = 0; i < numberOfClocks; ++i) {
+        // Read the configuration for the current clock output
+        uint8_t config = clock_config[i];
 
-        // Start parsing from the correct position if prefixed by "0x"
-        int start_idx = (output_map_str[0] == '0' && output_map_str[1] == 'x') ? 2 : 0;
+        // Extract the enable bit from the 7th position and
+        // update the enable mask by setting the corresponding bit
+        uint8_t enableOutput = (config >> 7) & 0x1;
+        enableMaskValue |= (enableOutput << i);
 
-        // Iterate over output map and print each step
-        for (int i = 0; i < n_out; ++i) {
-            if (i < map_length) {
-                // Convert the character to a number and apply it
-                clock_config[i] = (output_map_str[start_idx + i] >= '0' && output_map_str[start_idx + i] <= '9') ?
-                                  (output_map_str[start_idx + i] - '0') :
-                                  (output_map_str[start_idx + i] - 'A' + 10);
-            }
-            clock_config[i] = (((current_enable_mask >> i) & 0x1) << 7) | (clock_config[i] & 0xf);
-            printf("clock_config[%d]: 0x%02x\n", i, clock_config[i]);
-        }
+        // Extract the 4-bit selected input source from the lower bits and
+        // update the output map by setting the corresponding 4-bit value
+        uint8_t selectedInput = config & 0xF;
+        outputMapValue |= ((uint64_t)selectedInput << (4 * i));
 
-        // Get and print the store flag
-        const char *store_str = FreeRTOS_CLIGetParameter(pcCommandString, 3, &lParameterStringLength);
-        bool store = (store_str != NULL && atoi(store_str) > 0); // Correctly parsing the store flag
-        printf("Store flag: %d\n", store);
-
-        // Check if store is enabled and write to EEPROM
-        if (store) {
-            printf("Writing to EEPROM...\n");
-            eeprom_24xx02_write(CHIP_ID_RTC_EEPROM, 0x0, clock_config, 16, 10);
-        }
-
-        // Reset and configure
-        printf("Resetting and configuring clock...\n");
-        adn4604_reset();
-        clock_configuration(clock_config);
+        // Print the current clock configuration
+        printf("| %-2u %-12s | %-7u | %-2u %-20s |\r\n", i, ADN4604_OUTPUT[i],
+               enableOutput, selectedInput, ADN4604_INPUT[selectedInput]);
     }
 
-    // Prepare and print output map
-    uint8_t output_map[n_out];
-    printf("Enabled | Output     | Input      |\r\n");
-    for (int i = 0; i < n_out; ++i) {
-        bool output_enabled = 0x80 & clock_config[i];
-        output_map[i] = clock_config[i] & 0xF;
-        printf("      %1x | %17s | %17s |\r\n", output_enabled, ADN4604_OUTPUT[i], ADN4604_INPUT[output_map[i]]);
-        current_enable_mask |= output_enabled << i;
-    }
+    // Print the current enable mask
+    printf("\r\nCurrent enable mask: 0x%04X\r\n", enableMaskValue);
 
-    // Print the final configuration
-    printf("\r\n");
-    printf("     Current enable mask: 0x%04x\r\n", current_enable_mask);
+    // Print the current clock output map
     printf("Current clock output map: 0x");
-    for (int i = 0; i < n_out; ++i) {
-        if (output_map[i] < n_out) {
-            printf("%1x", output_map[i]);
-        }
+    for (uint8_t i = numberOfClocks - 1; i < numberOfClocks; i--) {
+        // Extract each 4-bit segment and print as a hexadecimal digit
+        uint8_t segment = (outputMapValue >> (4 * i)) & 0xF;
+        printf("%X", segment);
     }
     printf("\r\n");
 
+    return pdFALSE;
+}
+
+static BaseType_t clockConfigWriteCommand(char *pcWriteBuffer,
+                                          size_t xWriteBufferLength,
+                                          const char *pcCommandString) {
+    // Initialize the output buffer with an empty string
+    pcWriteBuffer[0] = '\0';
+
+    // Define the number of clocks to configure
+    const uint8_t numberOfClocks = 16;
+
+    // Retrieve the enable mask, which is the first parameter in the command string
+    BaseType_t enableMaskStringLength;
+    const char *enableMaskString =
+        FreeRTOS_CLIGetParameter(pcCommandString, 1, &enableMaskStringLength);
+
+    // Validate that the enable mask parameter is provided and is not an empty string
+    if (enableMaskString == NULL || enableMaskStringLength == 0) {
+        snprintf(pcWriteBuffer, xWriteBufferLength,
+                 "Error: Missing enable mask parameter.\n");
+        return pdFALSE;
+    }
+
+    // Validate that the "0x" is present
+    if (enableMaskString[0] != '0' || enableMaskString[1] != 'x') {
+        snprintf(pcWriteBuffer, xWriteBufferLength,
+                 "Error: Enable mask must be of the form 0x1234. Received "
+                 "enable mask string: %s\n",
+                 enableMaskString);
+        return pdFALSE;
+    }
+
+    // Validate the enable mask length
+    const uint8_t expectedEnableMaskStringLength = ceil(numberOfClocks / 4);
+    if (enableMaskStringLength != expectedEnableMaskStringLength + 2) { // +2 for "0x"
+        snprintf(pcWriteBuffer, xWriteBufferLength,
+                 "Error: Enable mask must be %u digits (e.g., 0x1234). Received "
+                 "enable mask string: %s\n",
+                 expectedEnableMaskStringLength, enableMaskString);
+        return pdFALSE;
+    }
+
+    // Convert the enable mask hexadecimal string to integer and validate
+    char *endPtr;
+    const uint16_t enableMaskValue = (uint16_t)strtoul(enableMaskString, &endPtr, 16);
+    if (*endPtr != '\0' && *endPtr != ' ') {
+        snprintf(pcWriteBuffer, xWriteBufferLength,
+                 "Error: Invalid characters in enable mask string.\n");
+        return pdFALSE;
+    }
+
+    // Retrieve the output map, which is the second parameter in the command string
+    BaseType_t outputMapStringLength;
+    const char *outputMapString =
+        FreeRTOS_CLIGetParameter(pcCommandString, 2, &outputMapStringLength);
+
+    // Validate that the output map parameter is provided and is not an empty string
+    if (outputMapString == NULL || outputMapStringLength == 0) {
+        snprintf(pcWriteBuffer, xWriteBufferLength,
+                 "Error: Missing output map parameter.\n");
+        return pdFALSE;
+    }
+
+    // Validate that the "0x" is present
+    if (outputMapString[0] != '0' || outputMapString[1] != 'x') {
+        snprintf(pcWriteBuffer, xWriteBufferLength,
+                 "Error: Output map must be of the form 0x123456479ABCDEF. Received "
+                 "output map string: %s\n",
+                 outputMapString);
+        return pdFALSE;
+    }
+
+    // Validate the output map length
+    const uint8_t expectedOutputMapStringLength = numberOfClocks;
+    if (outputMapStringLength != expectedOutputMapStringLength + 2) { // +2 for "0x"
+        snprintf(
+            pcWriteBuffer, xWriteBufferLength,
+            "Error: Output map must be %u digits (e.g., 0x123456789ABCDEF). Received "
+            "output map string: %s\n",
+            expectedOutputMapStringLength, outputMapString);
+        return pdFALSE;
+    }
+
+    // Convert the output map hexadecimal string to integer and validate
+    const uint64_t outputMapValue = strtoull(outputMapString, &endPtr, 16);
+    if (*endPtr != '\0' && *endPtr != ' ') {
+        snprintf(pcWriteBuffer, xWriteBufferLength,
+                 "Error: Invalid characters in output map string.\n");
+        return pdFALSE;
+    }
+
+    // Get the persistent storage preference, the third parameter in the command string
+    BaseType_t writeToEEPROMStringLength;
+    const char *writeToEEPROMString =
+        FreeRTOS_CLIGetParameter(pcCommandString, 3, &writeToEEPROMStringLength);
+
+    // Validate the writeToEEPROM parameter (only allow '0' or '1')
+    if (writeToEEPROMString != NULL && writeToEEPROMStringLength != 0) {
+        if (writeToEEPROMString[0] != '0' && writeToEEPROMString[0] != '1') {
+            snprintf(pcWriteBuffer, xWriteBufferLength,
+                     "Error: EEPROM write flag must be '0' or '1'. Received "
+                     "EEPROM write flag: %s\n",
+                     writeToEEPROMString ? writeToEEPROMString : "NULL");
+            return pdFALSE;
+        }
+    }
+
+    // Determine if writing to EEPROM is enabled
+    bool writeToEEPROMValue = false;
+    if (writeToEEPROMString != NULL && writeToEEPROMStringLength != 0) {
+        writeToEEPROMValue = (writeToEEPROMString[0] == '1');
+    }
+
+    // Iterate over each clock output to configure them according to provided parameters
+    for (uint8_t i = 0; i < numberOfClocks; ++i) {
+        // Extract a 4-bit value from the output map to determine which input source
+        // should be assigned to this clock output
+        uint8_t selectedInput = (outputMapValue >> (4 * i)) & 0xF;
+
+        // Extract a 1-bit value from the enable mask to determine if the current clock
+        // output should be enabled or disabled
+        uint8_t enableOutput = (enableMaskValue >> i) & 0x1;
+
+        // Set the clock configuration for the current clock output
+        clock_config[i] = (enableOutput << 7) | selectedInput;
+    }
+
+    // Check the EEPROM write flag and write to EEPROM
+    if (writeToEEPROMValue) {
+        printf("Writing to EEPROM...\n");
+        eeprom_24xx02_write(CHIP_ID_RTC_EEPROM, 0x0, clock_config, 16, 10);
+    }
+
+    // Reset and configure
+    printf("Resetting and configuring clocks...\n");
+    adn4604_reset();
+    clock_configuration(clock_config);
+
+    // Print the current configuration
+    printf("Clock configuration set successfully.\n");
+    clockConfigReadCommand(pcWriteBuffer, xWriteBufferLength, pcCommandString);
     return pdFALSE;
 }
 
@@ -699,12 +808,18 @@ static const CLI_Command_Definition_t PrintSensorReadoutCommandDefinition = {
     -1
 };
 
-static const CLI_Command_Definition_t SetClockConfigurationDefinition = {
-    "set_clock_configuration",
-    "\r\nset_clock_configuration <enable mask> <output mask>\r\n Set the configuration of the clock crossbar. Omit arguments to display current config.\r\n",
-    SetClockConfiguration,
-    -1
-};
+static const CLI_Command_Definition_t ClockConfigReadDefinition = {
+    "clock_config_read",
+    "\r\nclock_config_read\r\n Read the current configuration of the clock "
+    "crossbar.\r\n",
+    clockConfigReadCommand, 0};
+
+static const CLI_Command_Definition_t ClockConfigWriteDefinition = {
+    "clock_config_write",
+    "\r\nclock_config_write <enable mask> <output map> <eeprom write flag>\r\n Set the "
+    "configuration of the clock crossbar.\r\n",
+    clockConfigWriteCommand, -1};
+
 /**
  * @brief Registers all the defined CLI commands.
  */
@@ -734,5 +849,6 @@ void RegisterCLICommands(void)
     FreeRTOS_CLIRegisterCommand(&PrintSensorReadoutCommandDefinition);
 
     // Clock
-    FreeRTOS_CLIRegisterCommand(&SetClockConfigurationDefinition);
+    FreeRTOS_CLIRegisterCommand(&ClockConfigReadDefinition);
+    FreeRTOS_CLIRegisterCommand(&ClockConfigWriteDefinition);
 }
