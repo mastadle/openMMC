@@ -22,14 +22,12 @@
 #ifndef CLI_H_
 #define CLI_H_
 
-#define MAX_INPUT_LENGTH    50
-#define MAX_OUTPUT_LENGTH   100
+#define MAX_INPUT_LENGTH 80
+#define MAX_OUTPUT_LENGTH 160
 
 /**
  * @brief Creates CLI task.
  */
-void cli_init( void );
-
+void cli_init(void);
 
 #endif /* CLI_H_ */
-
