@@ -137,6 +137,9 @@
 #define GPIO_ADN_UPDATE                 PIN_DEF( PORT1, 26, (IOCON_FUNC0 | IOCON_MODE_PULLUP), GPIO_DIR_OUTPUT )
 #define GPIO_ADN_RESETN                 PIN_DEF( PORT1, 22, (IOCON_FUNC0 | IOCON_MODE_PULLUP), GPIO_DIR_INPUT )
 
+/* Low Jitter Clock Bypass */
+#define GPIO_TCLKA_TCLKC_SEL            PIN_DEF( PORT0, 2, (IOCON_FUNC0 | IOCON_MODE_INACT), GPIO_DIR_OUTPUT )
+
 /* SCANSTA1101 JTAG Switch */
 #define GPIO_SCANSTA1101_ADDR0          PIN_DEF( PORT2,  0, (IOCON_FUNC0 | IOCON_MODE_PULLDOWN), GPIO_DIR_OUTPUT )
 #define GPIO_SCANSTA1101_ADDR1          PIN_DEF( PORT2,  1, (IOCON_FUNC0 | IOCON_MODE_PULLDOWN), GPIO_DIR_OUTPUT )
@@ -217,6 +220,7 @@
         GPIO_DAC_VADJ_CSN,                      \
         GPIO_ADN_UPDATE,                        \
         GPIO_ADN_RESETN,                        \
+        GPIO_TCLKA_TCLKC_SEL,                   \
         GPIO_SCANSTA1101_ADDR0,                 \
         GPIO_SCANSTA1101_ADDR1,                 \
         GPIO_SCANSTA1101_ADDR2,                 \

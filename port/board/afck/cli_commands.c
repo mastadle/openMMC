@@ -209,6 +209,9 @@ static BaseType_t GpioWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
     else if (strcmp(name, "fmc2_pg_c2m") == 0) {
         gpio_set_pin_state(PIN_PORT(GPIO_FMC2_PG_C2M), PIN_NUMBER(GPIO_FMC2_PG_C2M), value & 0x1);
     }
+    else if (strcmp(name, "tclka_tclkc_sel") == 0) {
+        gpio_set_pin_state(PIN_PORT(GPIO_TCLKA_TCLKC_SEL), PIN_NUMBER(GPIO_TCLKA_TCLKC_SEL), value & 0x1);
+    }
 
     else {
         snprintf(pcWriteBuffer, xWriteBufferLen, "GPIO name <%s> not recognized.", name);
