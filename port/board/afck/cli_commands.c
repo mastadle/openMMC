@@ -86,6 +86,10 @@ static BaseType_t GpioReadCommand(char *pcWriteBuffer, size_t xWriteBufferLen, c
         value = gpio_read_pin(PIN_PORT(GPIO_OVERTEMPn), PIN_NUMBER(GPIO_OVERTEMPn));
     }
 
+    /* Low Jitter Clock Bypass */
+    else if (strcmp(name, "tclka_tclkc_sel") == 0) {
+        value = gpio_read_pin(PIN_PORT(GPIO_TCLKA_TCLKC_SEL), PIN_NUMBER(GPIO_TCLKA_TCLKC_SEL));
+    }
 
     // FPGA
     else if (strcmp(name, "fpga_done_b") == 0) {
@@ -181,6 +185,11 @@ static BaseType_t GpioWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
     }
     else if (strcmp(name, "adn_update") == 0) {
         gpio_set_pin_state(PIN_PORT(GPIO_ADN_UPDATE), PIN_NUMBER(GPIO_ADN_UPDATE), value & 0x1);
+    }
+
+    /* Low Jitter Clock Bypass */
+    else if (strcmp(name, "tclka_tclkc_sel") == 0) {
+        gpio_set_pin_state(PIN_PORT(GPIO_TCLKA_TCLKC_SEL), PIN_NUMBER(GPIO_TCLKA_TCLKC_SEL), value & 0x1);
     }
 
     // LEDs
