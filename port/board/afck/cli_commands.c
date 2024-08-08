@@ -640,6 +640,8 @@ static BaseType_t clockConfigReadCommand(char *pcWriteBuffer, size_t xWriteBuffe
     printf("\r\nCurrent enable mask: 0x%04X\r\n", enableMaskValue);
 
     // Print the current clock output map
+    // We print segment by segment using a loop since printing as 0x%016llX did not work
+    // TODO: Use https://github.com/eyalroz/printf/ instead of this custom printf
     printf("Current clock output map: 0x");
     for (uint8_t i = numberOfClocks - 1; i < numberOfClocks; i--) {
         // Extract each 4-bit segment and print as a hexadecimal digit
