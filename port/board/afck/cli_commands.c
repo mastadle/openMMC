@@ -807,6 +807,18 @@ static const CLI_Command_Definition_t GpioWriteCommandDefinition = {
     2
 };
 
+static const CLI_Command_Definition_t GpioReadDirectionCommandDefinition = {
+    "gpio_direction_read",
+    "\r\ngpio_direction_read <gpio>:\r\nReads <gpio> direction. Returns 0 for input "
+    "and 1 for output\r\n",
+    gpioReadDirectionCommand, 1};
+
+static const CLI_Command_Definition_t GpioWriteDirectionCommandDefinition = {
+    "gpio_direction_write",
+    "\r\ngpio_direction_write <gpio> <direction>:\r\nSets <direction> for the <gpio>. "
+    "Use 0 for input and 1 for output\r\n",
+    gpioWriteDirectionCommand, 2};
+
 static const CLI_Command_Definition_t ReadMagicValueCommandDefinition = {
     "magic",
     "\r\nmagic:\r\n Reads magic value\r\n",
