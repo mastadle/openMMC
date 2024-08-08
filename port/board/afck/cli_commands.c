@@ -229,6 +229,87 @@ static BaseType_t GpioWriteCommand(char *pcWriteBuffer, size_t xWriteBufferLen, 
     return pdFALSE;
 }
 
+static BaseType_t gpioReadDirectionCommand(char *pcWriteBuffer, size_t xWriteBufferLen,
+                                           const char *pcCommandString) {
+    char name[MAX_GPIO_NAME_LENGTH];
+    name[0] = '\0';
+    uint8_t direction, port, pin;
+    BaseType_t lParameterStringLength;
+
+    // Get GPIO name
+    const char *param =
+        FreeRTOS_CLIGetParameter(pcCommandString, 1, &lParameterStringLength);
+    strncat(name, param, MAX_GPIO_NAME_LENGTH - 1);
+
+    // Convert GPIO name to lower-case
+    for (int i = 0; name[i]; i++) {
+        name[i] = tolower((int)name[i]);
+    }
+
+    /* Low Jitter Clock Bypass */
+    if (strcmp(name, "tclka_tclkc_sel") == 0) {
+        direction = gpio_get_pin_dir(PIN_PORT(GPIO_TCLKA_TCLKC_SEL),
+                                     PIN_NUMBER(GPIO_TCLKA_TCLKC_SEL));
+    }
+
+    else {
+        port = atoi(FreeRTOS_CLIGetParameter((const char *)pcCommandString, 1,
+                                             &lParameterStringLength));
+        pin = atoi(FreeRTOS_CLIGetParameter((const char *)pcCommandString, 2,
+                                            &lParameterStringLength));
+        if (!lParameterStringLength) {
+            snprintf(pcWriteBuffer, xWriteBufferLen, "GPIO name <%s> not recognized.",
+                     name);
+            return pdFALSE;
+        }
+        direction = gpio_get_pin_dir(port, pin);
+    }
+
+    // Write GPIO direction to the output buffer
+    itoa(direction, pcWriteBuffer, 10);
+
+    return pdFALSE;
+}
+
+static BaseType_t gpioWriteDirectionCommand(char *pcWriteBuffer, size_t xWriteBufferLen,
+                                            const char *pcCommandString) {
+    char name[MAX_GPIO_NAME_LENGTH];
+    name[0] = '\0';
+    BaseType_t param_1_length, param_2_length;
+
+    // Get GPIO direction
+    uint8_t direction =
+        atoi(FreeRTOS_CLIGetParameter(pcCommandString, 2, &param_2_length));
+
+    // Get GPIO name
+    const char *param = FreeRTOS_CLIGetParameter(pcCommandString, 1, &param_1_length);
+    if (param_1_length >= MAX_GPIO_NAME_LENGTH - 1) {
+        param_1_length = MAX_GPIO_NAME_LENGTH - 1;
+    }
+    strncat(name, param, param_1_length);
+
+    // Convert GPIO name to lower-case
+    for (int i = 0; name[i]; i++) {
+        name[i] = tolower((int)name[i]);
+    }
+
+    /* Low Jitter Clock Bypass */
+    if (strcmp(name, "tclka_tclkc_sel") == 0) {
+        gpio_set_pin_dir(PIN_PORT(GPIO_TCLKA_TCLKC_SEL),
+                         PIN_NUMBER(GPIO_TCLKA_TCLKC_SEL), direction & 0x1);
+    }
+
+    else {
+        snprintf(pcWriteBuffer, xWriteBufferLen, "GPIO name <%s> not recognized.",
+                 name);
+        return pdFALSE;
+    }
+
+    strcpy(pcWriteBuffer, "OK");
+
+    return pdFALSE;
+}
+
 static BaseType_t ReadMagicValueCommand(char *pcWriteBuffer, size_t xWriteBufferLen, const char *pcCommandString)
 {
     strcpy(pcWriteBuffer, "4D41474943");
