@@ -925,11 +925,12 @@ static const CLI_Command_Definition_t ClockConfigWriteDefinition = {
 /**
  * @brief Registers all the defined CLI commands.
  */
-void RegisterCLICommands(void)
-{
+void RegisterCLICommands(void) {
     // GPIO
     FreeRTOS_CLIRegisterCommand(&GpioReadCommandDefinition);
     FreeRTOS_CLIRegisterCommand(&GpioWriteCommandDefinition);
+    FreeRTOS_CLIRegisterCommand(&GpioReadDirectionCommandDefinition);
+    FreeRTOS_CLIRegisterCommand(&GpioWriteDirectionCommandDefinition);
 
     // Others
     FreeRTOS_CLIRegisterCommand(&ReadMagicValueCommandDefinition);
