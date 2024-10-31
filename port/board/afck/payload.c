@@ -47,6 +47,7 @@
 #ifdef MODULE_HPM
 #include "flash_spi.h"
 #endif
+#include "pin_mapping.h"
 #include "clock_config.h"
 #include "i2c_mapping.h"
 #include "eeprom_24xx02.h"
@@ -227,6 +228,7 @@ void payload_init( void )
 
 
     gpio_set_pin_state( PIN_PORT(GPIO_FPGA_RESET), PIN_NUMBER(GPIO_FPGA_RESET), GPIO_LEVEL_HIGH );
+    gpio_set_pin_state( PIN_PORT(GPIO_TCLKA_TCLKC_SEL), PIN_NUMBER(GPIO_TCLKA_TCLKC_SEL), GPIO_LEVEL_LOW );
 }
 
 void vTaskPayload( void *pvParameters )

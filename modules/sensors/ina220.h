@@ -42,6 +42,7 @@
 
 #include "FreeRTOS.h"
 #include "port.h"
+#include "sdr.h"
 
 #define MAX_INA220_COUNT        12
 #define INA220_UPDATE_RATE      100
