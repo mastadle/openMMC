@@ -200,10 +200,14 @@ void payload_init( void )
         standalone_mode = true;
     }
 
+    /*
+    // TODO: Add a CLI controllable GPIO (should be possible to save in EEPROM)
+    // to enable or disable this check
     if (!standalone_mode) {
-        /* Wait until ENABLE# signal is asserted ( ENABLE == 0) */
+        // Wait until ENABLE# signal is asserted ( ENABLE == 0)
         while ( gpio_read_pin( PIN_PORT(GPIO_MMC_ENABLE), PIN_NUMBER(GPIO_MMC_ENABLE) ) == 1 ) {};
     }
+    */
 
     /* Recover clock switch configuration saved in EEPROM */
     eeprom_24xx02_read(CHIP_ID_RTC_EEPROM, 0x0, clock_config, 16, 10);
